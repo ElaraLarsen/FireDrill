@@ -1,7 +1,7 @@
 # RELAY_STATE — FireDrill live ledger
 
 ## Last Active Agent
-**Presentation lane (Teammate 2)**: 2026-11-04 ~12:00 IST, phase 4 (cross-lane edits authorised by the user, see D19). Before that: Codex Lane 2, 11:11 IST.
+**Presentation lane (Teammate 2)**: 2026-11-04 ~12:30 IST, phase 5 (dashboard visual polish). Before that: phase 4, ~12:00 IST.
 
 ## Winning Project
 **FireDrill: an adversarial hotfix courtroom in chat.**
@@ -37,7 +37,27 @@ Hook: Switch's own incident-response docs admit human approval is "instructions 
 - [x] Presentation lane built and tested (telemetry, dashboard, compose, README, demo script, blog). Compose unrun (no Docker daemon); no live Switch yet.
 - [ ] First live end-to-end drill
 
-## Completed in This Turn (presentation lane, phase 4)
+## Completed in This Turn (presentation lane, phase 5: dashboard visual polish)
+UI only. `dashboard/src/model.ts` (reducer) and the fixtures are unchanged (`git diff dashboard/src/model.ts` was empty); no Python file changed. Commit `89adc19`.
+- `dashboard/src/index.css`: new design tokens (surfaces, text, role colours: fixer indigo, breaker emerald, gate amber, approver cyan; RED/GREEN/ERROR), sans UI font + mono data font, motion with `prefers-reduced-motion` respected.
+- `dashboard/src/icons.tsx`: inline SVG icons (no new dependency).
+- `dashboard/src/views.ts` (+ `views.test.ts`, 10 tests): read-only views over State: the seven docket stages, brief parsing, failed-check summary, check grouping. Stages are derived from frames: "Naive Patch" only once an attack has broken the first patch, "Root-Cause Fix" only for a later patch after that RED, skipped if the first patch survives.
+- `dashboard/src/App.tsx`: two-row header (logo, `REPLAY MODE (REAL VERIFIER EVIDENCE)` plus a separate `SCRIPTED PARTICIPANTS` chip, Step back / Play-Pause-Replay / Step forward, Auto-play 1×/2×, Go live), incident pills `01 Idempotency Race / 02 Rate Limit Boundary / 03 Cursor Pagination`, scrubber, "What's real" provenance drawer, keyboard (space, ←/→). With no gate to follow (hosted copy, or local gate offline) it opens the first recording on its last frame until someone picks.
+- `dashboard/src/components.tsx`: rebuilt panels. Room stream cards with role chips and command badges; brief card with fix branch + SHA + diff stat; attack matrix with "Hostile Test Validated" / "Discarded: Failed on Reference Code" (R3 tooltip) / "Exposed the flaw" / "Fix survived" and a verdict switcher; verdict hero (pulsing PENDING, RED with failed-check summary, GREEN, MERGED with gate-key badge and main SHA); checks grouped into "Reference validation · Rule R3" and "Against the submitted fix" with ms and stdout drawers; sign-off box (locked / "Type @firedrill-gate APPROVE V-… to sign off" / merged with participant id); seven-stage docket progress bar.
+- Deviation from the brief, on purpose: stage 4 is "Root-Cause Fix", not "Atomic Fix" (only the idempotency fix is atomic; the others are a sliding window and a keyset cursor). The scripted chip stays visible next to the replay badge (§3).
+- `docs/dashboard.jpg` retaken: 3200x1800, headless Chrome, `?replay=idempotency-race&step=end`.
+
+Verification (run here, real output):
+```
+$ cd dashboard && npx vitest run   -> Test Files 2 passed (2), Tests 25 passed (25)   # the 15 reducer tests + 10 view tests
+$ cd dashboard && npm run build    -> ✓ built in 57ms (tsc -b clean)
+```
+- Headless Chrome renders checked at 1920x1080, 2560x1440, 1600x900@2x and a mid-trial frame (`?replay=pagination-cursor&step=27`: PENDING hero, streaming checks, "Red-Team Attack" active). Browser pane at 1600x900: incident pill switches and plays, Pause holds, Step forward advances. At 375px (mobile preset) the page has no horizontal scroll; one matrix cell clips inside its card.
+- pytest not re-run: no Python or fixture changed this turn (last run: 66 passed, phase 4).
+
+Noticed, not fixed (Switch layer, `gate/courtroom.py::render_verdict_message`): the gate's room message counts the R3-discarded attack's reference failure as a failed check, so a GREEN verdict reads "6/7 checks passed. - FAIL test_overbroad…". The dashboard's own panels count only checks against the fix (3/3). Fixing it means re-recording the three fixtures.
+
+## Previous turn (presentation lane, phase 4)
 The user explicitly authorised edits across lanes for these items (D19).
 1. **Incident names:** `gate/config.py::KNOWN_INCIDENTS`, `templates/firedrill.template.yaml` (enum), `.env.example`, ARCHITECTURE §6 row, and tests now say `pagination-cursor`; `path-traversal` is gone from code, template and docs (the string remains in history in RELAY_STATE). Courtroom/template wording "clean container" -> "fresh workspace".
 2. **Path scrub:** `gate/verify.py::_scrub` replaces workspace, repo, interpreter, temp and home directories and any `C:\Users\<name>`, `/Users/<name>`, `/home/<name>`, `/tmp`, `/var/folders` path with `<workspace> <repo> <python> <tmp> <home>` in all check output and notes. `tests/test_verify_scrub.py` (9 tests). All fixtures are regenerated; a test fails if any fixture or recording contains a host path.
