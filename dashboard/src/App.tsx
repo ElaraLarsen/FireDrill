@@ -1,14 +1,21 @@
+import Lenis from "lenis";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fixtureRuns, gateRuns, type Run } from "./fixtures";
 import { confetti, installTapFeedback } from "./fx";
+import * as I from "./icons";
 import { replay } from "./model";
-import { narrate, narrateState, stageSteps } from "./story";
-import { Caption } from "./ui/Caption";
-import { CaseFile } from "./ui/CaseFile";
-import { Header } from "./ui/Header";
-import { Journey } from "./ui/Journey";
-import { Room } from "./ui/Room";
-import { Verdict } from "./ui/Verdict";
+import { nextStepOn, PAGE_META, PAGES, pageForState, pageStates, pageTrack, type Page } from "./pages";
+import { fromLegacyLink, useRoute } from "./router";
+import { narrate, narrateState } from "./story";
+import { AttackPage } from "./ui/AttackPage";
+import { CasePage } from "./ui/CasePage";
+import { HOME_BOARD, Home } from "./ui/Home";
+import { RoomPage } from "./ui/RoomPage";
+import { RulingPage } from "./ui/RulingPage";
+import { Dock, pageIcon, TopBar, Trail } from "./ui/Shell";
+import { SignoffPage } from "./ui/SignoffPage";
+import { INK, PAGE_INK } from "./ui/theme";
 import { useLive } from "./useLive";
 import { stages } from "./views";
 
@@ -19,26 +26,33 @@ const isLocal = host === "" || host === "localhost" || host === "127.0.0.1" || h
 const WS_URL: string | null = (import.meta.env.VITE_TELEMETRY_URL as string | undefined) ?? (isLocal ? `ws://${host || "localhost"}:8787/telemetry` : null);
 const HTTP_URL = WS_URL ? WS_URL.replace(/^ws/, "http").replace(/\/telemetry$/, "") : null;
 
+const VIEW: Record<Page, typeof CasePage> = { case: CasePage, room: RoomPage, attack: AttackPage, ruling: RulingPage, signoff: SignoffPage };
+
 export default function App() {
   const { state: liveState, link } = useLive(WS_URL);
   const [runs, setRuns] = useState<Run[]>(() => fixtureRuns());
-  // Deep link: ?replay=<run id>&step=<n|end> opens a recorded drill paused at that frame.
-  const deep = useMemo(() => {
-    const q = new URLSearchParams(typeof location !== "undefined" ? location.search : "");
-    const id = q.get("replay");
-    const run = id ? fixtureRuns().find((r) => r.id === id) : undefined;
-    if (!run) return null;
-    const st = q.get("step");
-    return { id: run.id, step: st === "end" || st === null ? run.frames.length : Math.max(0, Math.min(run.frames.length, Number(st) || 0)) };
-  }, []);
-  const [runId, setRunId] = useState<string | null>(deep?.id ?? null);
-  const [step, setStep] = useState(deep?.step ?? 0);
+  const [route, go] = useRoute();
+  const runId = route.name === "case" ? route.run : null;
+  const run = useMemo(() => runs.find((r) => r.id === runId) ?? null, [runs, runId]);
+  const total = run?.frames.length ?? 0;
+  const track = useMemo(() => (run ? pageTrack(run.frames) : ["case" as Page]), [run]);
+  const resolve = useCallback((st: number | "end" | null) => (st === "end" ? total : st === null ? 0 : Math.min(total, st)), [total]);
+
+  // Open on the step the address names, so a link to a finished drill doesn't replay its celebration.
+  const [step, setStep] = useState(() => (route.name === "case" ? resolve(route.step) : 0));
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
-  const [evidence, setEvidence] = useState(false);
-  const chosen = useRef(Boolean(deep));
+  // While true, the page follows the story: every step lands on the page its frame belongs to.
+  const follow = useRef(fromLegacyLink);
+  const lenis = useRef<Lenis | null>(null);
 
   useEffect(() => installTapFeedback(), []);
+  useEffect(() => {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const l = new Lenis({ autoRaf: true, lerp: 0.12, prevent: (n) => n.hasAttribute?.("data-lenis-prevent") });
+    lenis.current = l;
+    return () => { l.destroy(); lenis.current = null; };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -47,34 +61,77 @@ export default function App() {
     return () => { alive = false; };
   }, [link]);
 
-  // No gate to follow: open the first recording at its start, ready to play, until someone picks.
-  useEffect(() => {
-    if (chosen.current || runId || !runs.length) return;
-    if (link === "static" || link === "offline") { setRunId(runs[0].id); setStep(0); }
-  }, [link, runs, runId]);
+  // A new case (or its recording arriving): start where the address says. This happens during render,
+  // not in an effect, so no frame ever shows the old case's step. A stale step would be written back
+  // to the address, fight the address's own step, and fire the merge confetti on every swing.
+  const [stepRun, setStepRun] = useState(run?.id ?? null);
+  if (stepRun !== (run?.id ?? null)) {
+    setStepRun(run?.id ?? null);
+    setStep(route.name === "case" ? resolve(route.step) : 0);
+  }
 
-  const run = useMemo(() => runs.find((r) => r.id === runId) ?? null, [runs, runId]);
-  const total = run?.frames.length ?? 0;
-  const steps = useMemo(() => (run ? stageSteps(run.frames) : {}), [run]);
+  // Back/forward in the browser: take the step from the address.
+  useEffect(() => {
+    if (route.name !== "case" || !run) return;
+    const want = resolve(route.step);
+    if (want !== step) { follow.current = false; setPlaying(false); setStep(want); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route]);
+
+  // Keep the address in step with the replay; while following, move to the frame's page.
+  useEffect(() => {
+    if (!run || route.name !== "case") return;
+    const page = follow.current ? track[Math.min(step, track.length - 1)] : route.page;
+    go({ name: "case", run: run.id, page, step }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, run?.id]);
+
+  // Following a live gate: move to the page the latest state belongs to.
+  useEffect(() => {
+    if (route.name !== "live" || !follow.current) return;
+    go({ name: "live", page: pageForState(liveState) }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveState.frames]);
 
   useEffect(() => {
     if (!playing || !run) return;
     if (step >= total) { setPlaying(false); return; }
     // Check rows stream quickly; verdicts and room events linger so people can read them.
     const next = run.frames[step]?.kind;
-    const base = next === "check" ? 320 : next === "verdict" || next === "merge" ? 1500 : 1000;
-    const t = window.setTimeout(() => setStep((s) => Math.min(total, s + 1)), base / speed);
+    // A page that just opened gets a moment of its own before the story moves on.
+    const arrived = step > 0 && track[step] !== track[step - 1];
+    const base = Math.max(arrived ? 2200 : 0, next === "check" ? 320 : next === "verdict" || next === "merge" ? 1500 : 1000);
+    const t = window.setTimeout(() => { follow.current = true; setStep((s) => Math.min(total, s + 1)); }, base / speed);
     return () => window.clearTimeout(t);
-  }, [playing, step, total, speed, run]);
+  }, [playing, step, total, speed, run, track]);
 
-  const pick = useCallback((id: string) => { chosen.current = true; setRunId(id); setStep(0); setPlaying(true); }, []);
-  const goLive = () => { chosen.current = true; setRunId(null); setPlaying(false); };
+  const pick = useCallback((id: string) => {
+    follow.current = true;
+    go({ name: "case", run: id, page: "case", step: 0 });
+    setStep(0);
+    setPlaying(true);
+  }, [go]);
+  const home = () => { setPlaying(false); go({ name: "home" }); };
+  const goLive = () => { follow.current = true; setPlaying(false); go({ name: "live", page: pageForState(liveState) }); };
   const toggle = useCallback(() => {
     if (!run) return;
+    follow.current = true;
     if (step >= total) { setStep(0); setPlaying(true); } else setPlaying((p) => !p);
   }, [run, step, total]);
-  const stepBy = useCallback((d: number) => { setPlaying(false); setStep((s) => Math.max(0, Math.min(total, s + d))); }, [total]);
-  const jump = useCallback((n: number) => { setPlaying(false); setStep(Math.max(0, Math.min(total, n))); }, [total]);
+  const stepBy = useCallback((d: number) => { follow.current = true; setPlaying(false); setStep((s) => Math.max(0, Math.min(total, s + d))); }, [total]);
+  const jump = useCallback((n: number) => { follow.current = true; setPlaying(false); setStep(Math.max(0, Math.min(total, n))); }, [total]);
+  const openPage = useCallback((p: Page) => {
+    follow.current = false;
+    if (route.name === "case") go({ ...route, page: p, step });
+    else if (route.name === "live") go({ name: "live", page: p });
+  }, [route, step, go]);
+  /** "Continue": move the story on to the next page's process, or just open the page if it never comes. */
+  const continueTo = useCallback((p: Page) => {
+    const n = run ? nextStepOn(track, p, step) : undefined;
+    if (n === undefined) { openPage(p); return; }
+    follow.current = true;
+    setStep(n);
+  }, [run, track, step, openPage]);
 
   // Space plays/pauses, arrows step, while no control has focus.
   useEffect(() => {
@@ -91,45 +148,123 @@ export default function App() {
   const state = run ? replay(run.frames, step) : liveState;
   const frame = run && step > 0 ? run.frames[step - 1] : null;
   const line = run ? narrate(frame, state.approvers) : narrateState(state);
+  const page: Page = route.name === "home" ? "case" : route.page;
 
   // Celebrate the moment the gate merges (not when a page simply opens on a merged drill).
   const merged = state.verdicts.some((v) => v.merged);
   const wasMerged = useRef<boolean | null>(null);
+  const mergedFor = useRef<string | null>(null);
   useEffect(() => {
-    if (wasMerged.current === false && merged) confetti();
+    // Opening a different case (or going home) sets a new baseline instead of celebrating.
+    const id = runId ?? "live";
+    if (mergedFor.current === id && wasMerged.current === false && merged) confetti();
+    mergedFor.current = id;
     wasMerged.current = merged;
-  }, [merged]);
+  }, [merged, runId]);
+
+  // A new page starts at the top.
+  const pageKey = `${route.name}:${runId}:${page}`;
+  const lastPage = useRef<Page>(page);
+  const dir = PAGES.indexOf(page) >= PAGES.indexOf(lastPage.current) ? 1 : -1;
+  useEffect(() => {
+    lastPage.current = page;
+    if (lenis.current) lenis.current.scrollTo(0, { duration: 0.8 });
+    else window.scrollTo({ top: 0 });
+  }, [pageKey, page]);
+
+  // The page you are on is printed in its own ink: the whole board turns that colour.
+  const ink = route.name === "home" ? HOME_BOARD : PAGE_INK[page];
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--board", ink.board);
+    root.style.setProperty("--on-board", ink.on);
+    root.classList.toggle("board-dark", ink.board === INK.forest);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", ink.board);
+  }, [ink]);
+
+  const runFor = (inc: string) => runs.find((r) => r.incident === inc);
+
+  if (route.name === "home") {
+    return (
+      <MotionConfig reducedMotion="user">
+        <a href="#cases" className="skip">Skip to the cases</a>
+        <div className="grain" aria-hidden />
+        <Home runFor={runFor} onPick={pick} onHome={home} link={link} onLive={link === "live" ? goLive : undefined} />
+      </MotionConfig>
+    );
+  }
+
+  const View = VIEW[page];
+  const at = PAGES.indexOf(page);
+  const prev = PAGES[at - 1];
+  const next = PAGES[at + 1];
 
   return (
-    <div className="relative min-h-full pb-4 lg:flex lg:h-full lg:flex-col lg:pb-0">
-      <a href="#evidence" className="skip">Skip to the evidence</a>
-      <div className="aurora" aria-hidden><i /><i /><i /><i /></div>
+    <MotionConfig reducedMotion="user">
+      <a href="#page" className="skip">Skip to the page</a>
+      <div className="grain" aria-hidden />
+      <div className="relative mx-auto max-w-[1440px] pb-[260px] sm:pb-[200px]">
+        <TopBar
+          run={run} link={link}
+          runFor={runFor}
+          activeIncident={run?.incident ?? liveState.incident}
+          onPick={pick}
+          onHome={home}
+          onLive={run && (link === "live" || link === "connecting") ? goLive : undefined}
+        />
+        <Trail page={page} states={pageStates(stages(state))} onGo={openPage} />
 
-      <Header
-        run={run} link={link}
-        runFor={(inc) => runs.find((r) => r.incident === inc)}
-        activeIncident={run?.incident ?? liveState.incident}
-        onPick={pick}
-        playing={playing} atEnd={step >= total} atStart={step === 0} speed={speed}
-        onToggle={toggle} onStep={stepBy} onSpeed={setSpeed}
-        onLive={run && (link === "live" || link === "connecting") ? goLive : undefined}
-        evidence={evidence} onEvidence={() => setEvidence(!evidence)}
+        <main id="page" tabIndex={-1} className="relative z-10 px-4 pt-8 outline-none sm:px-8">
+          <AnimatePresence mode="wait" custom={dir} initial={false}>
+            <motion.div
+              key={pageKey}
+              custom={dir}
+              variants={{
+                enter: (d: number) => ({ x: d * 60, opacity: 0 }),
+                show: { x: 0, opacity: 1 },
+                leave: (d: number) => ({ x: d * -60, opacity: 0 }),
+              }}
+              initial="enter"
+              animate="show"
+              exit="leave"
+              transition={{ duration: 0.34, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <View s={state} />
+            </motion.div>
+          </AnimatePresence>
+
+          <nav aria-label="Previous and next step" className="mt-10 flex flex-wrap items-center gap-1.5">
+            {prev && (
+              <motion.button whileHover={{ x: -4 }} whileTap={{ scale: 0.95 }} onClick={() => openPage(prev)} className="tap inline-flex h-16 items-center gap-3 pl-3 pr-6 text-[17px] font-semibold text-forest" style={{ background: PAGE_INK[prev].board, color: PAGE_INK[prev].on }}>
+                <I.Chevron size={20} className="rotate-180" /> {PAGE_META[prev].label}
+              </motion.button>
+            )}
+            {next && (
+              <motion.button
+                whileHover={{ x: 6 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => continueTo(next)}
+                className="tap group ml-auto inline-flex h-16 items-center gap-4 bg-forest pl-6 pr-2 text-[18px] font-semibold text-on"
+              >
+                Next: {PAGE_META[next].label}
+                <span className="grid h-12 w-12 place-items-center transition-transform duration-300 group-hover:translate-x-1" style={{ background: PAGE_INK[next].board === INK.forest ? INK.lime : PAGE_INK[next].board, color: INK.forest }}>{pageIcon(next, 22)}</span>
+              </motion.button>
+            )}
+            {!next && run && (
+              <motion.button whileHover={{ x: 6 }} whileTap={{ scale: 0.95 }} onClick={home} className="tap ml-auto inline-flex h-16 items-center gap-3 bg-forest px-7 text-[18px] font-semibold text-on">
+                Pick another case <I.Chevron size={20} />
+              </motion.button>
+            )}
+          </nav>
+        </main>
+      </div>
+
+      <Dock
+        line={line} k={`${run?.id}-${step}`}
+        frames={run?.frames ?? null} step={step} track={track}
+        playing={playing} speed={speed}
+        onToggle={toggle} onStep={stepBy} onJump={jump} onSpeed={setSpeed}
       />
-
-      {run && evidence && (
-        <div className="slideup relative z-10 mx-4 mt-3 rounded-2xl bg-white/95 px-5 py-3 text-[13px] leading-relaxed text-ink2 shadow-sm ring-1 ring-line sm:mx-6">
-          <b className="text-ink">What's real here: </b>{run.provenance} Frames are replayed in your browser; nothing is sent to the gate.
-        </div>
-      )}
-
-      <Journey stages={stages(state)} steps={steps} frames={run?.frames ?? null} step={step} onJump={jump} />
-      <Caption line={line} k={`${run?.id}-${step}`} onTap={run && step < total ? () => stepBy(1) : undefined} />
-
-      <main id="evidence" tabIndex={-1} key={run?.id ?? "live"} className="slideup outline-none relative z-10 grid gap-4 px-4 pb-4 pt-3 sm:px-6 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1fr)]">
-        <Room s={state} />
-        <CaseFile s={state} />
-        <Verdict s={state} />
-      </main>
-    </div>
+    </MotionConfig>
   );
 }

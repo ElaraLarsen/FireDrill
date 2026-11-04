@@ -1,7 +1,7 @@
 # RELAY_STATE — FireDrill live ledger
 
 ## Last Active Agent
-**Presentation lane (Teammate 2)**: 2026-11-04 ~14:45 IST: replaced the dashboard UI with the bright theme (user-requested, D22), merged over Codex's dark overhaul (D21). Before that: Codex 13:15 IST.
+**Presentation lane (Teammate 2)**: 2026-11-04 ~16:25 IST: mixed palette (lime, tangerine, sky and lilac on cream and forest) replaces the all-green look, plus a fix for a step ping-pong that fired repeated confetti. Fonts and the page-per-step flow unchanged. Local branch `ui/deep-courtroom-pages`, uncommitted and unpushed by request. Before that: presentation lane 16:15 IST (green), 16:10 IST (sunset), 16:00 IST (riso), 15:30 IST (night court), 14:45 IST (bright UI, D22), Codex 13:15 IST.
 
 ## Winning Project
 **FireDrill: an adversarial hotfix courtroom in chat.**
@@ -37,7 +37,106 @@ Hook: Switch's own incident-response docs admit human approval is "instructions 
 - [x] Presentation lane built and tested (telemetry, dashboard, compose, README, demo script, blog). Compose unrun (no Docker daemon); no live Switch yet.
 - [ ] First live end-to-end drill
 
-## Completed in This Turn (presentation lane, phase 6: bright UI, merged to main)
+## Completed in This Turn (presentation lane, phase 11: mixed palette — LOCAL ONLY)
+The user liked the green look but found it "green, green, green" and asked for mixed colours. I kept cream and forest as the ground and gave each of four hues one meaning:
+- lime #C6F432: the fixer;
+- tangerine #FF8A3D: the attack;
+- sky #8FCBF2: the gate;
+- lilac #C4B3F6: the human.
+
+Changes:
+- **Boards:** case cream, room sky, attack tangerine, ruling forest, sign-off lilac.
+- **Cases:** tangerine, sky and lilac.
+- **Home hero:** the liquid field turns through all four hues every 4.5s, and the "Pick a case" button follows it.
+- **Files:**
+  - `dashboard/src/index.css`: new tokens.
+  - `src/ui/theme.tsx`: INK, PAGE_INK, ROLE, TONE, INCIDENT_HEX.
+  - `src/ui/Home.tsx`: hue cycle, fact numbers, case grid now three columns only from `lg`, because the footers wrapped at 800 px.
+  - `src/fx.ts`: confetti.
+  - Accents in `src/ui/CasePage.tsx`, `RoomPage.tsx`, `AttackPage.tsx`, `RulingPage.tsx`, `SignoffPage.tsx` and `Shell.tsx`.
+  - `dashboard/DESIGN.md`.
+- **Bug fixed in `src/App.tsx`** (it predates this turn): opening a case kept the previous case's step for one commit. The address-sync effect wrote that stale step back to the hash, then the route effect and the sync effect ping-ponged (seen as `step=48` ↔ `step=60` on ratelimit-boundary). Each swing across the merge fired confetti: 9 bursts measured on one open.
+  - The step is now reset during render when `run.id` changes, using the `stepRun` state, and the old effect for the same job was removed.
+
+Verification (run here, 16:24 IST):
+```
+$ cd dashboard && npx tsc -b       -> exit 0
+$ cd dashboard && npx vitest run   -> Tests 45 passed (45)
+$ cd dashboard && npm run build    -> ✓ built in 277ms
+```
+Browser pane, http://127.0.0.1:5188:
+- **Confetti** (MutationObserver count of `.confetti` nodes): open idempotency at end 0, then ratelimit at end 0, home then pagination at end 0, step 40 → end 1. Hashes settled at 48, 60, 56 and 56.
+- **Hero cycle:** the button background, sampled every 4.6s, read tangerine, lime, sky, lilac.
+- **Playback:** a home case pick plays from `step=0` and reaches the room page.
+- **Overflow:** 375/375 on home and all five pages at the 375 px mobile preset.
+- **Visual check:** all pages by eye at the pane width.
+
+## Earlier this session (presentation lane, phase 10: green palette — superseded colours)
+The user rejected the sunset colours and chose a green palette: cream #F3EEDF, forest #0F2A1D, sage #A9C5A0 and lime #C6F432, plus pass #1FA463 and fail #E5383B. There are no reds, pinks or oranges except for a failure. Fonts (Instrument Serif and Bricolage Grotesque) and the page flow are unchanged.
+- Boards: case cream, room sage, attack lime, ruling forest, sign-off moss #7FB77E. Panels are forest #143322.
+- Cast: fixer lime, breaker cream, gate sage, approver moss, guest stone. Cases: lime, sage and moss.
+- Files:
+  - `dashboard/src/index.css`: green tokens; selection, focus and skip link.
+  - `src/ui/theme.tsx`: INK, PAGE_INK, ROLE, TONE, INCIDENT_HEX.
+  - `src/ui/LiquidChrome.tsx`: green ramp.
+  - `src/ui/Home.tsx`: forest hero with a lime liquid field; sun hairline removed; hero `aria-labelledby` pointed at a missing id, now `aria-label`.
+  - `src/fx.ts`: green confetti.
+  - Class and INK renames in `src/App.tsx`, `src/ui/Shell.tsx` and the five pages.
+  - `dashboard/DESIGN.md`: rewritten.
+
+Verification (run here, 16:15 IST):
+```
+$ cd dashboard && npx tsc -b       -> exit 0
+$ cd dashboard && npx vitest run   -> Tests 45 passed (45)
+$ cd dashboard && npm run build    -> ✓ built in 289ms
+```
+Browser pane on http://127.0.0.1:5188 (`npx vite --port 5188`; 5173 is taken locally):
+- Pages checked: home and all five idempotency-race pages, by eye.
+- Overflow: `scrollWidth/innerWidth` reads 375/375 on every page at the 375 px mobile preset.
+- No leftover sunset colour names in `src/` (grep).
+- Console errors: only the refused `ws://127.0.0.1:8787/telemetry`, because no gate is running in replay.
+
+## Earlier this session (presentation lane, phase 9: one day's sky — superseded look)
+The user rejected the riso yellow and the plain Archivo type, and pointed at the reel instagram.com/reel/DfTc6X5qyPJ ("POV: You mastered color theory"). It needs a login to play; the embed's cover frame was readable. Its five swatches were sampled from the image pixels: #B5305B, #5A1041, #C27D3A, #EE481E and #D8313B, on a #0B0207 plum-black site with a blush surround.
+- Palette: one analogous sunset family (plum, raspberry, crimson, vermilion, ochre/honey, coral) with night #140510 and blush #FBE9E9, plus jade for a pass. Pages run from morning to dawn: case blush, room honey, attack vermilion, ruling night, sign-off coral. Panels are rounded night plum.
+- Type: Instrument Serif (titles, with an italic last word; numbers; the verdict) and Bricolage Grotesque variable (UI and body). Both are self-hosted in `dashboard/public/fonts/` with their OFL files. Archivo was removed.
+- Files: `src/index.css` (tokens, type, radii), `ui/theme.tsx` (INK, PAGE_INK, ROLE, TONE, new `Headline`), `ui/LiquidChrome.tsx` (silver became a sunset ramp; new `uDepth`), `ui/Home.tsx` (sunset hero, sun hairline), class and colour renames across `App.tsx`, `ui/Shell.tsx` and the five pages, `fx.ts` (palette confetti), `DESIGN.md`.
+- Bug fixed (it predates this turn): opening an already-merged case from inside the app fired the merge confetti. `App.tsx` now resets the baseline per run.
+
+Verification (run here):
+```
+$ cd dashboard && npx tsc -b       -> no errors
+$ cd dashboard && npx vitest run   -> Tests 45 passed (45)
+$ cd dashboard && npm run build    -> ✓ built in 277ms (same >500 kB chunk warning)
+```
+Browser pane on http://127.0.0.1:5188: home and all five pages at 1440 and 375 px, no horizontal scroll, both fonts loaded (`document.fonts.check`). Confetti: none when opening a finished case; it fires when stepping 40 → end.
+
+## Earlier this session (presentation lane, phase 8: riso print — superseded look)
+The user rejected the night-court look (navy + pink, "AI theme") and asked for vibrant colour with black only in places, very interactive, with reactbits Liquid Chrome, motion-primitives Text Scramble, Lenis and basement.studio as references. The page-per-step flow from phase 7 is kept unchanged.
+- Visual world: a riso-printed poster. Each step has its own ink and the whole board turns that colour (`PAGE_INK` in `ui/theme.tsx`): case yellow, room aqua, attack orange, ruling black, sign-off green. Content sits on flat black panels; square corners, no shadows or gradients; a grain layer. Type is Archivo variable (self-hosted, `public/fonts/archivo-latin-wdth.woff2` + OFL), stretched for display.
+- New: `ui/LiquidChrome.tsx` (WebGL port of the reactbits shader; home print and the ruling seal's field), `ui/Scramble.tsx` (titles and narrator), `dashboard/PRODUCT.md`, `.impeccable/surfaces/src-app-tsx.md`. Rewritten: `index.css`, `ui/theme.tsx`, `ui/Shell.tsx`, `ui/Home.tsx`, all five pages, `App.tsx` (per-page board ink), `fx.ts` (ink confetti), `DESIGN.md`. Removed: `ui/Backdrop.tsx`. `pages.ts`, `router.ts`, `model.ts`, `views.ts`, `story.ts`, `fixtures.ts`, recordings and Python are unchanged.
+- Bug found and fixed while testing: the chrome's cleanup called `loseContext()`, so React's dev double-mount left a lost context (a blank white field). Cleanup now frees only the buffer and program.
+
+Verification (run here, real output):
+```
+$ cd dashboard && npx tsc -b       -> no errors
+$ cd dashboard && npx vitest run   -> Test Files 5 passed, Tests 45 passed (45)
+$ cd dashboard && npm run build    -> ✓ built in 246ms (same >500 kB chunk warning)
+```
+Browser pane on http://127.0.0.1:5188: home and all five pages at 1440 and 375 px, no horizontal scroll; cast flip, brief expand, chrome renders and follows the pointer. Not run: the impeccable finish reviewer, and no user review of the direction (the user asked not to be shown it).
+
+## Earlier this session (presentation lane, phase 7: night court, page per step — superseded look)
+User asked for a deeper, more professional, high-contrast UI that every age finds eye-catching, with its own animation and touch response per component, and the single-page flow split into a page per process. Kept local on branch `ui/deep-courtroom-pages`; nothing committed or pushed (user: "do not push it to the main branch right now").
+- New: `dashboard/src/pages.ts` (five pages, frame→page track, continue-to-next), `src/router.ts` (hash routes, legacy `?replay=` upgrade), `src/pages.test.ts`, `src/ui/{Backdrop,Shell,Home,CasePage,RoomPage,AttackPage,RulingPage,SignoffPage}.tsx`. Rewritten: `App.tsx`, `index.css`, `ui/theme.tsx`, `fx.ts` (pointer spotlight), `DESIGN.md`. Removed: `ui/{Header,Journey,Caption,Room,CaseFile,Verdict}.tsx`. Added deps: `motion`, `lenis`. `model.ts`, `views.ts`, `story.ts`, `fixtures.ts`, recordings and all Python unchanged.
+
+Verification (run here, real output):
+```
+$ cd dashboard && npx vitest run   -> Test Files 5 passed, Tests 45 passed (45)
+$ cd dashboard && npm run build    -> ✓ built in 511ms (one >500 kB chunk warning: bundled fixtures + motion)
+```
+Browser pane on http://127.0.0.1:5188 (port 5173 was taken by another local app): home, all five pages at 1440 and 375 px (no horizontal scroll), auto-play switching pages, legacy `?replay=idempotency-race&step=27` → ruling page, "Next: Sign-off" continue. No console errors besides the expected refused ws://…:8787 (no gate running).
+
+## Previous turn (presentation lane, phase 6: bright UI, merged to main)
 The user asked for a new, bright, non-dark UI, built on a local branch first, then said to push it to main. `origin/main` had meanwhile received Codex's dark "obsidian" overhaul (D21: `eae0391`, `54ff60f`, `f93c1e7`), which rewrote the same files, so the branch was merged (no force-push; Codex's commits stay in history).
 - New UI: `dashboard/src/ui/{Header,Journey,Caption,Room,CaseFile,Verdict,theme}.tsx`, `fx.ts` (tap ripple, confetti), `story.ts` (plain-language narration, stage jump points), `App.tsx`, `index.css`. Palette: violet fixer, pink breaker, blue gate, teal approver, emerald/rose states; no orange, no black. Every tappable element ripples and does something (jump, filter, flip, expand, copy). `model.ts`, `views.ts`, `fixtures.ts`, the recordings and all Python are unchanged by this work.
 - Merge resolution: kept Codex's bundled Inter/JetBrains Mono (`public/fonts`, favicon, `.impeccable/config.json` Inter exception) and the new UI uses them (no Google Fonts request). Removed what only the old UI used: `src/components.tsx`, `src/Docket.tsx`, `src/panels.css`, `.impeccable/design.json` (generated for the dark design; regenerate if the design hook is used). Kept `src/milestones.ts` and its test (now unused by the UI). Rewrote `dashboard/DESIGN.md` for the new design and kept its accessibility rules (visible focus ring, skip link, honest provenance labels).

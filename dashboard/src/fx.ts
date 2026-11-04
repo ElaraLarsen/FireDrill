@@ -23,7 +23,8 @@ export function installTapFeedback(): () => void {
   return () => document.removeEventListener("pointerdown", onDown);
 }
 
-const COLORS = ["#7c3aed", "#db2777", "#2563eb", "#0d9488", "#10b981", "#0284c7", "#a78bfa", "#f472b6", "#22d3ee"];
+// The whole palette: lime, tangerine, sky, lilac, cream, jade and forest.
+const COLORS = ["#c6f432", "#ff8a3d", "#8fcbf2", "#c4b3f6", "#f3eedf", "#1fa463", "#0f2a1d"];
 
 /** A short burst of confetti from the top of the screen. */
 export function confetti(pieces = 90): void {
@@ -38,7 +39,6 @@ export function confetti(pieces = 90): void {
     b.style.setProperty("--rot", `${(Math.random() - 0.5) * 1080}deg`);
     b.style.animationDuration = `${1.6 + Math.random() * 1.6}s`;
     b.style.animationDelay = `${Math.random() * 0.25}s`;
-    if (i % 3 === 0) b.style.borderRadius = "50%";
     host.appendChild(b);
   }
   document.body.appendChild(host);
