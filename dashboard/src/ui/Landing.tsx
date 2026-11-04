@@ -1,4 +1,4 @@
-// The landing page (#/landing): a front door for people who have never seen FireDrill. Its order
+// The landing page (#/, the front door): the way in for people who have never seen FireDrill. Its order
 // follows a cinematic landing (a drawn world under the title, a story band with figures, a pinned
 // reel of cases, the five steps, a closing word, a footer), built neo-brutalist in the dashboard's
 // palette. Every figure is counted from the bundled recordings, and says that they are scripted.

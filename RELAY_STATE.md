@@ -1,7 +1,7 @@
 # RELAY_STATE — FireDrill live ledger
 
 ## Last Active Agent
-**Presentation lane (Teammate 2)**: 2026-11-04 ~17:00 IST: neo-brutalist landing page at `#/landing` (hand-drawn SVG courthouse hero, GSAP interactions), merged with the console commit e9e49fc and pushed to `main`. Before that: presentation lane 16:45 IST (terminal console replaces the player; attack colour rose), presentation lane 16:30 IST (mixed palette pushed to `main` as 0aaf3ee), 16:25 IST (mixed palette), 16:15 IST (green), 16:10 IST (sunset), 16:00 IST (riso), 15:30 IST (night court), 14:45 IST (bright UI, D22), Codex 13:15 IST.
+**Presentation lane (Teammate 2)**: 2026-11-04 ~17:10 IST: the landing page is now the front page at `#/`, and the case list moved to `#/cases`; pushed to `main`. Before that, ~17:00 IST: neo-brutalist landing page at `#/landing` (hand-drawn SVG courthouse hero, GSAP interactions), merged with the console commit e9e49fc and pushed to `main`. Before that: presentation lane 16:45 IST (terminal console replaces the player; attack colour rose), presentation lane 16:30 IST (mixed palette pushed to `main` as 0aaf3ee), 16:25 IST (mixed palette), 16:15 IST (green), 16:10 IST (sunset), 16:00 IST (riso), 15:30 IST (night court), 14:45 IST (bright UI, D22), Codex 13:15 IST.
 
 ## Winning Project
 **FireDrill: an adversarial hotfix courtroom in chat.**
@@ -37,7 +37,19 @@ Hook: Switch's own incident-response docs admit human approval is "instructions 
 - [x] Presentation lane built and tested (telemetry, dashboard, compose, README, demo script, blog). Compose unrun (no Docker daemon); no live Switch yet.
 - [ ] First live end-to-end drill
 
-## Completed in This Turn (presentation lane, phase 13: landing page + GSAP — on main)
+## Completed in This Turn (presentation lane, phase 14: landing page becomes the front page — on main)
+- The user asked for the landing page to be the site's front page.
+- `dashboard/src/router.ts`: `#/` (and any unknown hash) now opens the landing page, and the case list (route name `home`) moves to `#/cases`. Old `#/landing` links still work.
+- `dashboard/src/App.tsx`: the FireDrill mark on the case list and on every case page goes to the landing page (`front`). "Open the courtroom" on the landing page and the console's `home` command still go to the case list.
+- `dashboard/src/pages.test.ts` (router tests updated), `dashboard/DESIGN.md` (routes table), and the header comment in `src/ui/Landing.tsx`.
+- Verification (17:09 IST): `npx tsc -b` exits 0, `npx vitest run` gives `Tests 56 passed (56)`, and `npm run build` gives `✓ built in 337ms`. In the browser pane:
+  - the bare URL opens the landing page;
+  - "Open the courtroom" goes to `#/cases`;
+  - picking Idempotency opens `#/case/idempotency-race/case?step=0`;
+  - the logo there goes to `#/` (the landing page);
+  - browser back returns to the case.
+
+## Earlier turn (presentation lane, phase 13: landing page + GSAP — on main)
 - The user asked for the mixed palette on `main`. It was committed on `ui/deep-courtroom-pages` and fast-forwarded to `main`: `834fee0..0aaf3ee main -> main`.
 - While this was in progress a teammate pushed e9e49fc (terminal console; attack hue tangerine renamed rose `#FF8FB1`). Merged it rather than overwriting: conflicts in `App.tsx` (kept both `nextLine` and the landing route), `index.css` (both new blocks; one reduced-motion list) and this file. The landing files were switched from `tangerine` to `rose` to match.
 - The user then asked for a landing page modelled on threeui.com's "Kage" landing: a loader, a layered hero with a giant wordmark behind the foreground, a story band with stats, a pinned card reel, a chapters grid, a big closing word, and a three-column footer. Our data, our palette and fonts, a self-built background, and a neo-brutalist theme. Later they asked for GSAP.

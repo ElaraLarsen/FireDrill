@@ -63,13 +63,17 @@ describe("router", () => {
     expect(r).toEqual({ name: "case", run: "idempotency-race", page: "attack", step: 17 });
     expect(href(r)).toBe("#/case/idempotency-race/attack?step=17");
   });
-  it("accepts step=end and falls back to home", () => {
+  it("accepts step=end and falls back to the landing page", () => {
     expect(parse("#/case/x/ruling?step=end")).toMatchObject({ step: "end" });
-    expect(parse("#/nope")).toEqual({ name: "home" });
+    expect(parse("#/nope")).toEqual({ name: "landing" });
     expect(parse("#/case/x/bogus")).toMatchObject({ page: "case", step: null });
   });
-  it("round-trips the landing page", () => {
+  it("opens on the landing page and keeps the case list at #/cases", () => {
+    expect(parse("")).toEqual({ name: "landing" });
+    expect(parse("#/")).toEqual({ name: "landing" });
+    expect(href({ name: "landing" })).toBe("#/");
     expect(parse("#/landing")).toEqual({ name: "landing" });
-    expect(href({ name: "landing" })).toBe("#/landing");
+    expect(parse("#/cases")).toEqual({ name: "home" });
+    expect(href({ name: "home" })).toBe("#/cases");
   });
 });

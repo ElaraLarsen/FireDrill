@@ -76,7 +76,8 @@ Hash routes, so any static host works:
 
 | Route | Page |
 |---|---|
-| `#/` | Home: liquid hero, three cases, "Five steps, one gate." |
+| `#/` | The landing page (below). Old `#/landing` links still land here, and the FireDrill mark on every page leads back to it. |
+| `#/cases` | The case list: liquid hero, three cases, "Five steps, one gate." "Open the courtroom" and the console's `home` lead here. |
 | `#/case/<run>/case` · `/room` · `/attack` · `/ruling` · `/signoff` | The five steps |
 | `#/live/<page>` | The same pages following a running gate |
 
@@ -94,7 +95,7 @@ Hash routes, so any static host works:
   - A hue never changes meaning. If rose shows up, it is about the attack.
   - Banned: navy, pink, purple-blue gradients, pure black and pure white. The only gradients are the liquid field and the hero's forest scrim.
 
-## Landing page (`#/landing`)
+## Landing page (`#/`, the front door)
 
 A front door for people who have never seen FireDrill. It borrows its structure from a cinematic, chaptered landing page:
 

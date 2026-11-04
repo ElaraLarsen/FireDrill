@@ -114,6 +114,8 @@ export default function App() {
     setPlaying(false);
   }, [go]);
   const home = () => { setPlaying(false); go({ name: "home" }); };
+  // The FireDrill mark always leads back to the front door; "home" itself is the case list.
+  const front = () => { setPlaying(false); go({ name: "landing" }); };
   // In-page jumps on the landing page go through Lenis, so they glide like the rest of the scroll.
   const scrollToId = (id: string) => {
     const el = id === "top" ? 0 : document.getElementById(id);
@@ -248,7 +250,7 @@ export default function App() {
       <MotionConfig reducedMotion="user">
         <a href="#cases" className="skip">Skip to the cases</a>
         <div className="grain" aria-hidden />
-        <Home runFor={runFor} onPick={pick} onHome={home} link={link} onLive={link === "live" ? goLive : undefined} />
+        <Home runFor={runFor} onPick={pick} onHome={front} link={link} onLive={link === "live" ? goLive : undefined} />
       </MotionConfig>
     );
   }
@@ -268,7 +270,7 @@ export default function App() {
           runFor={runFor}
           activeIncident={run?.incident ?? liveState.incident}
           onPick={pick}
-          onHome={home}
+          onHome={front}
           onLive={run && (link === "live" || link === "connecting") ? goLive : undefined}
         />
         <Trail page={page} states={pageStates(stages(state))} onGo={openPage} />
