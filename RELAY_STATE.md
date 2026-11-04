@@ -1,7 +1,7 @@
 # RELAY_STATE — FireDrill live ledger
 
 ## Last Active Agent
-**Presentation lane (Teammate 2)**: 2026-11-04 ~12:45 IST, phase 5b (gate verdict message fix, user-approved). Before that: phase 5, ~12:30 IST.
+**Codex**: 2026-11-04 13:13 IST — dashboard-only design system and UI/UX overhaul, explicitly assigned by user (D21).
 
 ## Winning Project
 **FireDrill: an adversarial hotfix courtroom in chat.**
@@ -37,7 +37,40 @@ Hook: Switch's own incident-response docs admit human approval is "instructions 
 - [x] Presentation lane built and tested (telemetry, dashboard, compose, README, demo script, blog). Compose unrun (no Docker daemon); no live Switch yet.
 - [ ] First live end-to-end drill
 
-## Completed in This Turn (presentation lane, phase 5b: verdict message fix)
+## Completed in This Turn (Codex — dashboard-only overhaul)
+- Rebuilt the obsidian 3:5:4 desktop workspace, command bar, scripted/verified provenance badges, Judge Demo Mode, Reset/Prev/Play/Pause/Next/End/speed controls, and responsive layouts. Existing deep links and reducer behavior are preserved.
+- Rebuilt room messages as a role-colored protocol timeline; keyboard-scrollable evidence regions; follows latest messages with reduced-motion and resize handling.
+- Added keyboard-operable brief/patch tabs, actual diff statistics, current/historical QA checks, expandable stdout, dedicated Rule R3 filter, and reference validation disclosure. Historical selection never alters the current verdict/vault.
+- Added a large state-aware verdict, three evidence-derived locks with accessible Passed/Pending labels, blocked-command audit, and authenticated merge receipt. Repro-only GREEN remains locked. Actual local runner/network metadata is retained.
+- Added clickable docket milestones derived from exact recorded frame indexes, including refused approvals and separate sign-off/merge beats; three new Vitest tests verify seeks against all recordings.
+- Files changed: dashboard/src/App.tsx, components.tsx, index.css; dashboard/index.html; docs/dashboard.jpg (1920x1080); RELAY_STATE.md.
+- Files added: dashboard/src/Docket.tsx, milestones.ts, milestones.test.ts, panels.css; dashboard/public/favicon.svg; dashboard/public/fonts/inter-latin.woff2, jetbrains-mono-latin.woff2, Inter-LICENSE.txt, JetBrainsMono-OFL.txt; dashboard/DESIGN.md and dashboard/.impeccable/design.json.
+- Self-hosted Inter variable and JetBrains Mono regular from their official repositories with licenses. No dependency changes. All committed fixtures, model.ts, views.ts and the existing 25 tests remain byte-for-byte unchanged.
+
+Verification (real output in this turn):
+```
+$ cd dashboard; npm test
+Test Files  3 passed (3)
+     Tests  28 passed (28)
+Duration 286ms
+$ npm run build
+> tsc -b && vite build
+✓ 31 modules transformed.
+✓ built in 240ms
+$ git diff --exit-code -- dashboard/src/model.ts dashboard/src/model.test.ts dashboard/src/views.ts dashboard/src/views.test.ts dashboard/fixtures
+(no output; exit 0)
+$ git diff --check
+(exit 0; only Git's existing LF/CRLF conversion warnings)
+$ git fetch origin main; git rev-list --left-right --count HEAD...origin/main
+0  0 (before this commit)
+```
+- Playwright against the production build: all three recordings' repro-only, RED, GREEN, both refusal, sign-off and merge milestones passed; tabs/keyboard tabs, actual patch SHA, stdout, R3 details, historical inspection, reset, prev/next, play/pause, speed, arrow shortcut, scrubber and Judge Demo Mode passed. Static preview browser errors: [].
+- Responsive checks: 1920x1080, 1600x1000, 1280x800, 1024x768, 768x1024, 390x844, 375x812. No horizontal document overflow; desktop document height equals viewport height; trace bottom distance within 1px. Desktop columns measured 3:5:4. Reduced motion: beam animation none, transition 0s.
+- axe-core 4.10.3 WCAG 2A/2AA/2.1AA: no violations at merged desktop, RED mobile and repro-only 1280px. Final merged desktop: 29 passed, violations [], incomplete [color-contrast] because of the ambient gradient. Manual palette contrast on the lightest structural surface: muted 6.64:1, faint 5.44:1, role accents >=5.65:1; merged title 6.29:1 and body 4.82:1. This is not a claim of exhaustive accessibility certification.
+- Impeccable detector: one warning for Inter being overused, retained because the user explicitly requested Inter/Plus Jakarta. Independent finish review: ship; identified lock-label accessibility issue was resolved. Also fixed keyboard access to the scrollable verdict region and clarified the spoken merged status.
+- No Python/backend file inspected, modified, or executed; no fixtures regenerated; backend's earlier 68-test result was not rerun. Live Switch was not tested.
+
+## Previous turn (presentation lane, phase 5b: verdict message fix)
 User approved this Switch-layer edit in chat.
 - `gate/courtroom.py::render_verdict_message` now counts and lists only checks against the submitted fix. Reference checks validate attacks (Rule R3); an R3-discarded attack still appears as "- discarded attack …". Before: a GREEN post read "6/7 checks passed. - FAIL test_overbroad…"; now "3/3 checks against the fix passed." The `**V-…: RESULT**` headline that `scripts/replay_demo.py` parses is unchanged.
 - `tests/test_verdict_message.py` (2 tests, GREEN and RED); `tests/test_courtroom_recordings.py` also asserts a GREEN post has no "FAIL".
@@ -191,7 +224,7 @@ Bugs the tests caught and fixed:
 - Lane 2's local subprocess runner replaces Docker execution (D16). `Dockerfile.gate` now packages `incident-lab/` and pytest and no longer assumes sibling Docker (unbuilt: no daemon here). Live Switch has not been verified.
 - Incident ids are aligned to `pagination-cursor` in `gate/config.py` and the template (phase 4). The template has still not been linted by a real Switch server.
 - Windows `scripts/bootstrap_evidence.sh` idempotency: root cause (sed mangling backslashes) fixed in phase 4 and covered by a failing-before/passing-after test on macOS; still unconfirmed on Windows Git Bash. Existing presentation stand-in-verifier fixture is retained separately from new real local verification recordings.
-- Nothing running (the dev servers used for checking were stopped). No live Switch server has been reached yet: this workspace's network blocks `ghcr.io`, so the Switch images can't be pulled here.
+- Dashboard production preview from this turn is running on port 5176 (http://127.0.0.2:5176/?replay=idempotency-race&step=end uses static replay with no backend). Task dev servers on 5174/5175 were stopped. Port 5173 was already occupied and was not changed. No backend server or container was started in this turn. Live Switch remains unverified. Earlier handoff reported ghcr.io blocked.
 - GitHub repo exists: `ElaraLarsen/firedrill` (public). Codex uses the configured human Git identity (`Kaustubh-Negi-01`); no AI co-author trailer.
 - Pinned `SWITCH_VERSION=0.31.0` (latest stable tag `switch-v0.31.0`).
 - Open unknowns (close with `python -m gate.main --probe` on a live server; paste the output here):
@@ -201,6 +234,7 @@ Bugs the tests caught and fixed:
   4. Whether the seeded Mattermost `user` is the `{$creator}` when the template is run from Console. `replay_demo.py` assumes it can see the channel.
 
 ## Decisions Log
+- D21 (2026-11-04, Codex; explicit user request): Codex owns this dashboard-only visual overhaul in the presentation lane. Allowed edits: dashboard/, docs/dashboard.jpg, RELAY_STATE.md. Preserve model.ts, existing tests and fixtures; no backend inspection or execution. Commit and push main when verified.
 - D16 (2026-11-04, Codex; explicit Lane 2 handoff): third incident is `pagination-cursor`, superseding §6's `path-traversal`. Verify uses fresh local subprocess workspaces (`python -m pytest`), not Docker; runner metadata says network is inherited, not isolated. Claude-1 must update configured incident names and container wording in their lane.
 - D18 (2026-11-04, presentation lane): dashboard incident list follows D16 (`pagination-cursor`). Resolved by D19: `gate/config.py` now matches.
 - D19 (2026-11-04, presentation lane; user-authorised cross-lane edits): touched `gate/config.py`, `templates/firedrill.template.yaml`, `.env.example`, `gate/courtroom.py` (message wording), `gate/verify.py` (path scrub only; no verdict logic changed), `scripts/bootstrap_evidence.sh` (setenv/getenv), `tests/conftest.py`, `tests/test_verify_matrix.py` (recording destination), `demo/scripted/README.md`, ARCHITECTURE §6 row.
@@ -224,6 +258,11 @@ Bugs the tests caught and fixed:
 
 ## Next Handoff Queue
 
+### Latest dashboard handoff (Codex, 2026-11-04)
+- User-authorized dashboard overhaul is complete; preserve src/model.ts, all fixtures and existing tests. Use dashboard/DESIGN.md for the implemented system. Run npm test (28 tests) and npm run build from dashboard/.
+- Local production preview: http://127.0.0.2:5176/?replay=idempotency-race&step=end. Deep-link examples: step=11 repro-only, step=27 RED, step=40 GREEN for idempotency-race. Replay is scripted participants with real verifier evidence, not a live Switch run.
+- User requested commit on main and push origin main. Changes are scoped to dashboard/, docs/dashboard.jpg and this ledger. Pre-existing untracked .dockerignore, .gitattributes and tests/test_config.py are unrelated and must not be staged.
+
 ### Claude-1 (team lead's machine; needs Docker + Switch Console)
 0. (Phase 4 did the incident-name alignment and the courtroom wording; skip those.) Publish the contents of `incident-lab/` as the lab repo, excluding private `gate/reference/`. The verifier consumes a lab-root checkout and `attacks/<id>/`, exactly as replay_demo.py expects. Re-run `tests/test_evidence_hook.py` on Windows/Git Bash and report whether the awk-based `setenv` fix holds (not run there yet).
 1. `scripts/bootstrap_stack.sh` → Console: add server `http://localhost:8000`, sign in to Claude Code + Codex.
@@ -239,9 +278,7 @@ Bugs the tests caught and fixed:
 2. All nine patches and 12 requested matrix cells are covered. Regenerate only the new local recordings with `FIREDRILL_RECORD_FIXTURES=1`; `FIREDRILL_RECORD_FIXTURE` (singular) belongs to the old presentation stand-in fixture, not these recordings.
 3. After other lanes align config and container packaging, help run one real Switch courtroom with this verifier. Keep `tests/fake_verify.py` confined to its existing isolated courtroom unit tests; do not report its fixture as a real verify run.
 
-### Claude-2: presentation layer (built; follow-ups)
-0. (Done in phase 3B: dashboard handles the recordings, Dockerfile.gate repackaged; remaining: build the image and `compose up` where Docker exists.) Three real local verification fixtures now exist as `recorded-<id>.jsonl` plus provenance metadata; fixture glob auto-loads them. They intentionally contain only verdict_started/check/verdict actions, not room conversation or authenticated approval. Correctly distinguish their local scripted provenance from live Switch. Update Dockerfile.gate to COPY `incident-lab/` and install its requirements (pytest is required by gate.verify); remove obsolete sibling-Docker assumptions. Coordinate config changes with Claude-1. Keep frontend files in your lane.
-1. Once a live drill exists: `python -m gate.main`, run the template, then record that drill (copy `gate/state/<room>.jsonl` to `dashboard/fixtures/<incident>.jsonl` with a `.meta.json` whose `provenance` says it is live) and replace the stand-in-verifier fixture. Update `tests/test_telemetry_fixture.py` expectations if the frame order differs.
-2. Run `docker compose -f docker-compose.firedrill.yml up --build` on a machine with Docker; fix what breaks. Known risk: verify's sibling containers need checkout paths identical on host and in the gate container.
-3. Re-record the dashboard screenshot (`docs/dashboard.jpg`) from the live drill; capture the other two incidents once Codex's scenarios exist and add fixtures for them (the incident tabs enable themselves when a fixture exists).
-4. Check the `check` frames from Codex's real `gate/verify.py`: the attack matrix shows "Passed against Reference Fix" only if `verify` emits `kind: "attack", against: "reference"` checks. If it doesn't, the matrix falls back to fix-only rows and the discarded list.
+### Claude-2: presentation layer (dashboard overhaul complete)
+1. Current fixtures are dashboard/fixtures/{idempotency-race,ratelimit-boundary,pagination-cursor}.jsonl with provenance sidecars; old recorded-* and stand-in-verifier fixtures were already removed in phase 4. Do not restore obsolete fixture instructions from earlier handoffs.
+2. Preserve the new dashboard design system and authentic state/provenance treatment. The UI is read-only evidence replay/live display; authenticated approval is performed in the Switch room, never by a dashboard button.
+3. Live Switch integration, container build/compose validation, and public deployment remain separate follow-ups on a machine with the required services. This dashboard-only turn did not inspect or execute backend code.

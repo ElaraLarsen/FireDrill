@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-04T07:41:18Z",
+  "title": "Design System: FireDrill Courtroom",
+  "extensions": {
+    "colorMeta": {
+      "obsidian": { "role": "neutral", "displayName": "Obsidian canvas" },
+      "indigo": { "role": "primary", "displayName": "Fixer and focus" },
+      "rose": { "role": "secondary", "displayName": "Red-team and failure" },
+      "emerald": { "role": "secondary", "displayName": "Approver and pass" },
+      "amber": { "role": "secondary", "displayName": "Caution and Rule R3" }
+    },
+    "typographyMeta": {
+      "mono": { "displayName": "Evidence metadata", "purpose": "Commands, IDs, SHAs, durations, counters, and output; font-variant-numeric: tabular-nums." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(.23,1,.32,1)", "purpose": "Control state changes." },
+      { "name": "control-color", "value": "160ms", "purpose": "Background, foreground, and border transitions." },
+      { "name": "control-press", "value": "140ms", "purpose": "Press scale to .98." },
+      { "name": "border-trace", "value": "5s linear infinite", "purpose": "One-pixel verdict border trace." },
+      { "name": "reduced-motion", "value": "none", "purpose": "Disable animation, transitions, and smooth scrolling under prefers-reduced-motion: reduce." }
+    ],
+    "breakpoints": [
+      { "name": "tablet", "value": "768px" },
+      { "name": "desktop", "value": "1280px" },
+      { "name": "wide", "value": "1800px" }
+    ],
+    "layout": {
+      "desktopColumns": "minmax(0,3fr) minmax(0,5fr) minmax(0,4fr)",
+      "tabletColumns": "repeat(2,minmax(0,1fr)); room spans both",
+      "mobileColumns": "minmax(0,1fr)",
+      "desktopMinimumHeight": "650px"
+    },
+    "focus": { "outline": "2px solid var(--color-indigo)", "offset": "4px" }
+  },
+  "components": [
+    {
+      "name": "Primary transport",
+      "kind": "button",
+      "description": "Play or pause the selected recording.",
+      "html": "<button class=\"ds-play\">Play</button>",
+      "css": ".ds-play{background:#dfe3ff;color:#141627;border:1px solid #eef0ff;border-radius:6px;padding:9px 15px;min-height:36px;font:700 12px Inter,sans-serif;cursor:pointer}.ds-play:hover{background:#fff}.ds-play:focus-visible{outline:2px solid var(--color-indigo,#818cf8);outline-offset:4px}.ds-play:active{transform:scale(.98)}"
+    },
+    {
+      "name": "Quiet action",
+      "kind": "button",
+      "description": "Secondary evidence disclosure or live-mode action.",
+      "html": "<button class=\"ds-quiet\">Evidence</button>",
+      "css": ".ds-quiet{background:transparent;color:var(--color-mute,#9ca3af);border:1px solid var(--color-line,rgb(255 255 255 / .08));border-radius:6px;padding:7px 10px;font:11px Inter,sans-serif;cursor:pointer}.ds-quiet:hover{background:var(--color-raise,#10131c);color:var(--color-fg,#f3f4f6)}.ds-quiet:focus-visible{outline:2px solid var(--color-indigo,#818cf8);outline-offset:4px}"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Structural evidence container with a hairline header.",
+      "html": "<section class=\"ds-panel\"><h2>Case inspector</h2><p>Inspect supplied evidence.</p></section>",
+      "css": ".ds-panel{background:var(--color-panel,#0b0d13);color:var(--color-fg,#f3f4f6);border:1px solid var(--color-line,rgb(255 255 255 / .08));border-radius:10px;overflow:hidden;font:12px Inter,sans-serif}.ds-panel h2{font-size:13px;font-weight:600;margin:0;padding:17px 18px;border-bottom:1px solid var(--color-line,rgb(255 255 255 / .08))}.ds-panel p{padding:18px;margin:0;color:var(--color-mute,#9ca3af)}"
+    },
+    {
+      "name": "Protocol pill",
+      "kind": "chip",
+      "description": "Compact command identity; accent follows the participant or result.",
+      "html": "<span class=\"ds-protocol\">STATUS</span>",
+      "css": ".ds-protocol{display:inline-flex;color:var(--color-cyan,#38bdf8);border:1px solid #38bdf840;background:#38bdf80f;padding:6px 7px;border-radius:4px;font:10px 'JetBrains Mono',monospace}"
+    },
+    {
+      "name": "QA output disclosure",
+      "kind": "custom",
+      "description": "Expand a check to inspect its supplied output.",
+      "html": "<details class=\"ds-qa\"><summary>Check output</summary><pre>No output was included in this frame.</pre></details>",
+      "css": ".ds-qa{color:var(--color-fg,#f3f4f6);font:11px 'JetBrains Mono',monospace;border-block:1px solid var(--color-line,rgb(255 255 255 / .08))}.ds-qa summary{padding:12px 2px;cursor:pointer}.ds-qa summary:hover{background:#ffffff03}.ds-qa summary:focus-visible{outline:2px solid var(--color-indigo,#818cf8);outline-offset:4px}.ds-qa pre{background:#040509;color:#bdc5d4;padding:11px;border-radius:4px;white-space:pre-wrap;font-size:10px;line-height:1.7}"
+    }
+  ],
+  "narrative": {
+    "northStar": "High-precision developer observability console",
+    "overview": "A chronological room trace, inspectable verification evidence, and a prominent current verdict. Evidence determines every status.",
+    "keyCharacteristics": ["Obsidian tonal surfaces", "3:5:4 desktop evidence grid", "Role-colored trace", "Inspectable QA output", "State-derived sign-off vault"],
+    "rules": [
+      { "name": "Tonal depth", "body": "Use surface tone, hairlines, and restrained state tint; no drop-shadow vocabulary.", "section": "elevation" },
+      { "name": "Evidence typography", "body": "Use JetBrains Mono and tabular figures for commands, IDs, SHAs, durations, and output.", "section": "typography" }
+    ],
+    "dos": ["Show text and icons alongside status color.", "Keep historical check inspection separate from current verdict state.", "Preserve keyboard focus, disclosures, and reduced-motion behavior.", "Label scripted and test-verifier recordings accurately."],
+    "donts": ["Invent verification data or approval evidence.", "Hide repro-only sign-off warnings.", "Add nested workspace scrollbars."]
+  }
+}
