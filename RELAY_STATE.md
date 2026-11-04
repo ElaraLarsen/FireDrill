@@ -1,7 +1,7 @@
 # RELAY_STATE — FireDrill live ledger
 
 ## Last Active Agent
-**Codex**: 2026-11-04 13:14 IST — dashboard-only design system and UI/UX overhaul, explicitly assigned by user (D21).
+**Codex**: 2026-11-04 13:15 IST — persisted the user-requested Inter font exception.
 
 ## Winning Project
 **FireDrill: an adversarial hotfix courtroom in chat.**
@@ -37,7 +37,14 @@ Hook: Switch's own incident-response docs admit human approval is "instructions 
 - [x] Presentation lane built and tested (telemetry, dashboard, compose, README, demo script, blog). Compose unrun (no Docker daemon); no live Switch yet.
 - [ ] First live end-to-end drill
 
-## Completed in This Turn (Codex — dashboard-only overhaul)
+## Completed in This Turn (Codex — design hook triage)
+- Kept Inter unchanged: the user explicitly requested Inter or Plus Jakarta Sans in the dashboard brief.
+- Added only `overused-font=inter` to `dashboard/.impeccable/config.json` through the official `hooks ignore-value` command, with the original brief cited as the reason. No rule-wide or file-wide ignore was added.
+- Exact files touched: dashboard/.impeccable/config.json and RELAY_STATE.md. No UI/runtime code changed; tests/build were not rerun for this configuration-only follow-up.
+- Verification: command output `Added overused-font=inter to shared detector.ignoreValues (.impeccable\config.json).`; detector no longer reports overused-font for dashboard/src/index.css. It reports advisory font-size/radius differences against the abbreviated design documentation; these were left standing without broadening this font-only triage.
+- Current System State and per-agent handoffs below remain unchanged. Future dashboard work should preserve the explicitly chosen font and narrow exception.
+
+## Previous turn (Codex — dashboard-only overhaul)
 - Rebuilt the obsidian 3:5:4 desktop workspace, command bar, scripted/verified provenance badges, Judge Demo Mode, Reset/Prev/Play/Pause/Next/End/speed controls, and responsive layouts. Existing deep links and reducer behavior are preserved.
 - Rebuilt room messages as a role-colored protocol timeline; keyboard-scrollable evidence regions; follows latest messages with reduced-motion and resize handling.
 - Added keyboard-operable brief/patch tabs, actual diff statistics, current/historical QA checks, expandable stdout, dedicated Rule R3 filter, and reference validation disclosure. Historical selection never alters the current verdict/vault.

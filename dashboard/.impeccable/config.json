@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-11-04T07:45:00.147Z",
+        "reason": "User design brief section 1 explicitly requests Inter or Plus Jakarta Sans; Inter is the selected dashboard typeface."
+      }
+    ]
+  }
+}
