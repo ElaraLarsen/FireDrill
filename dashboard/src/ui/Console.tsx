@@ -162,7 +162,7 @@ export function Console(p: Props) {
               aria-expanded={false}
               className="tap press glass-btn inline-flex h-10 items-center gap-2.5 rounded-full px-4 font-mono text-[14px] font-medium"
             >
-              <span className="grid h-5 w-5 place-items-center rounded-md bg-[var(--fg)] text-[11px] leading-none text-[var(--board)]" aria-hidden>❯</span>
+              <span className="orb" aria-hidden />
               Console
               {p.frames && <span className="tnum text-[12.5px] text-[var(--fg3)]">{p.step}/{total}</span>}
             </button>
@@ -175,24 +175,24 @@ export function Console(p: Props) {
             role="dialog"
             onAnimationStart={() => input.current?.focus({ preventScroll: true })}
             aria-label="Console"
-            initial={{ opacity: 0, y: 36, scale: 0.94, filter: "blur(8px)" }}
-            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: 36, scale: 0.94, filter: "blur(8px)" }}
+            initial={{ opacity: 0, y: 36, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 36, scale: 0.94 }}
             transition={{ duration: 0.36, ease }}
             style={{ transformOrigin: "50% 100%" }}
-            className="glass-win pointer-events-auto relative w-full max-w-[1040px] overflow-hidden"
+            className="pointer-events-auto relative w-full max-w-[1040px] pt-5"
             onClick={(e) => { if (!(e.target as HTMLElement).closest("button, a")) input.current?.focus({ preventScroll: true }); }}
           >
-            <div className="glass-bar relative flex h-11 items-center gap-3 px-4 font-mono text-[12.5px]">
-              <div className="group/dots flex items-center gap-2" role="group" aria-label="Window controls">
-                <Dot color="#ff5f57" label="Close the console" onClick={hide}><path d="M3.2 3.2l5.6 5.6M8.8 3.2L3.2 8.8" /></Dot>
-                <Dot color="#febc2e" label={mode === "mini" ? "Show the log again" : "Shrink to just the prompt"} onClick={() => setMode(mode === "mini" ? "normal" : "mini")}><path d="M2.8 6h6.4" /></Dot>
-                <Dot color="#28c840" label={mode === "large" ? "Back to normal size" : "Make the console bigger"} onClick={() => setMode(mode === "large" ? "normal" : "large")}>
-                  <path d={mode === "large" ? "M4.4 7.6L2.8 9.2M4.4 7.6V5.6M4.4 7.6H6.4M7.6 4.4l1.6-1.6M7.6 4.4v2M7.6 4.4h-2" : "M3.2 8.8L8.8 3.2M5 3.2h3.8V7M7 8.8H3.2V5"} />
-                </Dot>
-              </div>
-              <span className="truncate text-[var(--fg2)]">firedrill <span className="text-[var(--fg3)]">~/</span>{p.title}</span>
-              <span className="ml-auto hidden truncate text-[var(--fg3)] sm:inline">{p.meta}</span>
+            {/* A tab that overhangs the window: the size steps, the title, and the fold that puts it away. */}
+            <div className="glass-tab absolute left-5 top-0 z-10 flex h-10 max-w-[calc(100%-2.5rem)] items-center gap-3 pl-3.5 pr-2 sm:left-9">
+              <Steps mode={mode} onPick={setMode} />
+              <span className="min-w-0 truncate font-mono text-[13px] text-[var(--fg2)]">firedrill <span className="text-[var(--fg3)]">~/</span>{p.title}</span>
+              <Fold onClick={hide} />
+            </div>
+
+            <div className="glass-win overflow-hidden">
+            <div className="glass-bar relative flex h-9 items-center justify-end pl-5 pr-10 font-mono text-[12.5px]">
+              <span className="hidden truncate text-[var(--fg3)] sm:inline">{p.meta}</span>
             </div>
 
             <motion.div
@@ -229,7 +229,7 @@ export function Console(p: Props) {
               </div>
             </motion.div>
 
-            <div className="glass-bar flex items-center gap-3 border-t px-4 py-2.5 font-mono text-[14px]">
+            <div className="glass-bar flex items-center gap-3 border-t pl-5 pr-9 py-2.5 font-mono text-[14px]">
               <span className="select-none text-[var(--t-accent)]" aria-hidden>{p.running ? "…" : "❯"}</span>
               <div className="relative min-w-0 flex-1">
                 <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center whitespace-pre text-[var(--fg3)]">
@@ -258,6 +258,7 @@ export function Console(p: Props) {
                 <Soft label={p.running ? "stop" : "run"} onClick={() => (p.running ? p.onStop() : submit("run"))} disabled={!p.frames || (atEnd && !p.running)} />
               </div>
             </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -265,16 +266,37 @@ export function Console(p: Props) {
   );
 }
 
-function Dot({ color, label, onClick, children }: { color: string; label: string; onClick: () => void; children: ReactNode }) {
+/**
+ * Three bars of rising height: the size of the console. The bar you are on is lit in colour; press
+ * another to change size. The first leaves just the prompt, the last opens the log wide.
+ */
+function Steps({ mode, onPick }: { mode: Mode; onPick: (m: Mode) => void }) {
+  const set: { m: Mode; label: string; h: number }[] = [
+    { m: "mini", label: "Prompt only", h: 11 },
+    { m: "normal", label: "Normal size", h: 17 },
+    { m: "large", label: "Large", h: 24 },
+  ];
   return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className="dot grid h-3.5 w-3.5 place-items-center rounded-full"
-      style={{ background: color }}
-    >
-      <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="rgb(0 0 0 / .6)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="dot-glyph">{children}</svg>
+    <div role="group" aria-label="Console size" className="flex h-7 items-end gap-1">
+      {set.map((x) => {
+        const on = mode === x.m;
+        return (
+          <button key={x.m} onClick={() => onPick(x.m)} aria-pressed={on} aria-label={x.label} title={x.label} className="step grid h-7 w-3 place-items-end">
+            <span className={`step-bar block w-2 ${on ? "on" : ""}`} style={{ height: x.h }} />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Puts the console away. A tilted lozenge with a fold mark that opens as you reach for it. */
+function Fold({ onClick }: { onClick: () => void }) {
+  return (
+    <button onClick={onClick} aria-label="Close the console" title="Close (Esc)" className="fold grid h-8 w-8 place-items-center">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="fold-mark">
+        <path d="M5 9l7 7 7-7" />
+      </svg>
     </button>
   );
 }

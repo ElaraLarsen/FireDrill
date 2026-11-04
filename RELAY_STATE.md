@@ -1,7 +1,7 @@
 # RELAY_STATE — FireDrill live ledger
 
 ## Last Active Agent
-**Presentation lane (Teammate 2)**: 2026-11-04 ~17:15 IST: the landing page is now the front page at `#/`, and the case list moved to `#/cases`. Merged with the teammate's a8caedc and pushed to `main`. Before that: the teammate (a8caedc, ~17:08 IST by commit time) added glass console hidden behind a pill with working window dots, Playwright e2e and accessibility fixes. Before that, ~17:00 IST: neo-brutalist landing page at `#/landing` (hand-drawn SVG courthouse hero, GSAP interactions), merged with the console commit e9e49fc and pushed to `main`. Before that: presentation lane 16:45 IST (terminal console replaces the player; attack colour rose), presentation lane 16:30 IST (mixed palette pushed to `main` as 0aaf3ee), 16:25 IST (mixed palette), 16:15 IST (green), 16:10 IST (sunset), 16:00 IST (riso), 15:30 IST (night court), 14:45 IST (bright UI, D22), Codex 13:15 IST.
+**Presentation lane (Teammate 2)**: 2026-11-04 ~19:00 IST: console redesigned (colour, leaf shape, own controls, no mac dots); committed locally, push pending the user's go-ahead.
 
 ## Winning Project
 **FireDrill: an adversarial hotfix courtroom in chat.**
@@ -37,7 +37,13 @@ Hook: Switch's own incident-response docs admit human approval is "instructions 
 - [x] Presentation lane built and tested (telemetry, dashboard, compose, README, demo script, blog). Compose unrun (no Docker daemon); no live Switch yet.
 - [ ] First live end-to-end drill
 
-## Completed in This Turn (presentation lane, phase 15: landing page becomes the front page — on main)
+## Completed in This Turn (presentation lane, phase 15: coloured leaf-shaped console, own controls)
+- Pulled `88edd5b` (the landing page is now the front page at `#/`; the case list is `#/cases`) and built on it.
+- Console redesign (user request): the mac red/yellow/green dots are gone. New controls drawn from scratch: three rising size bars and a lozenge fold, in an overhanging glass tab. The window is a leaf shape with colour pooled in the glass and a rainbow masked edge; "next" is a slanted blade; the pill has a turning four-hue orb. Files: `dashboard/src/ui/Console.tsx`, `src/index.css`, `e2e/console.spec.ts`, `DESIGN.md`, `docs/dashboard.jpg`. Transcript text and prompt behaviour unchanged.
+- Verification: `npx tsc -b` clean; `npx vitest run` 56 passed; `npx playwright test` 82 passed (desktop + phone); screenshots checked at 1600 and 390 wide on cream, sky, rose and dark boards. Not tested: real touch hardware, Safari/Firefox.
+- Self-rating against the Flip the Switch criteria (page lists Use of Switch, Technical execution, Creativity and impact, Presentation; weights show as 0%, so equal weight assumed): about 74/100. Biggest gaps: no live Switch run, no demo video, no deployed link, no Wispr scorecard.
+
+## Previous turn (presentation lane, phase 15: landing page becomes the front page — on main)
 - The user asked for the landing page to be the site's front page.
 - Merged the teammate's a8caedc (glass console, Playwright e2e) first. In `dashboard/e2e/pages.spec.ts`, `/#/landing` was swapped for `/#/cases` in the route list and in the "home and landing" axe test, so the case list is still covered now that `/#/` is the landing page.
 - `dashboard/src/router.ts`: `#/` (and any unknown hash) now opens the landing page, and the case list (route name `home`) moves to `#/cases`. Old `#/landing` links still work.

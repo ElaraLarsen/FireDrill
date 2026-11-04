@@ -37,57 +37,71 @@ test.describe("console: hidden until asked for", () => {
 
   test("is glass: frosted backdrop, translucent fill, and no solid black", async ({ page }) => {
     await openCase(page);
-    const win = await openConsole(page);
-    const css = await win.evaluate((el) => { const c = getComputedStyle(el); return { f: c.backdropFilter || c.webkitBackdropFilter, bg: c.backgroundImage + c.backgroundColor }; });
+    await openConsole(page);
+    const css = await page.locator(".glass-win").evaluate((el) => { const c = getComputedStyle(el); return { f: c.backdropFilter || c.webkitBackdropFilter, bg: c.backgroundImage + c.backgroundColor }; });
     expect(css.f).toMatch(/blur\(\d+px\)/);
     expect(css.bg).toMatch(/rgba?\(|color\(|oklab/);
     expect(css.bg).not.toMatch(/rgb\(10, 31, 21\)/);
   });
 });
 
-test.describe("console: the three dots work", () => {
-  test("red hides it, yellow shrinks it to the prompt and back, green grows it and back", async ({ page }) => {
+test.describe("console: its own controls (no window dots)", () => {
+  test("there are no mac-style red, yellow or green dots", async ({ page }) => {
+    await openCase(page);
+    const win = await openConsole(page);
+    const dots = await win.locator("button").evaluateAll((bs) => bs.filter((b) => { const r = b.getBoundingClientRect(); const c = getComputedStyle(b).backgroundColor; return r.width < 18 && r.height < 18 && /rgb\((255, 95, 87|254, 188, 46|40, 200, 64)\)/.test(c); }).length);
+    expect(dots).toBe(0);
+  });
+
+  test("the size steps: prompt only, normal, large; the lit one is the current one", async ({ page }) => {
     await openCase(page, "idempotency-race", "case", 12);
     const win = await openConsole(page);
     const log = page.locator("[role=log]");
     const height = async () => (await log.boundingBox())?.height ?? 0;
+    const step = (name: string) => page.getByRole("button", { name, exact: true });
+    await expect(step("Normal size")).toHaveAttribute("aria-pressed", "true");
     await expect.poll(height).toBeGreaterThan(150);
     const normal = await height();
 
-    await page.getByRole("button", { name: "Make the console bigger" }).click();
+    await step("Large").click();
+    await expect(step("Large")).toHaveAttribute("aria-pressed", "true");
     await expect.poll(height).toBeGreaterThan(normal + 100);
-    await page.getByRole("button", { name: "Back to normal size" }).click();
-    await expect.poll(async () => Math.abs((await height()) - normal)).toBeLessThan(4);
 
-    await page.getByRole("button", { name: "Shrink to just the prompt" }).click();
-    // The log is clipped to nothing: the window is just its two bars, and the hidden log cannot be tabbed into.
-    await expect.poll(async () => (await win.boundingBox())?.height ?? 0).toBeLessThan(120);
+    await step("Prompt only").click();
+    await expect(step("Prompt only")).toHaveAttribute("aria-pressed", "true");
+    // The log is clipped to nothing: the window is just its bar and prompt, and the hidden log cannot be tabbed into.
+    await expect.poll(async () => (await win.boundingBox())?.height ?? 0).toBeLessThan(150);
     await expect(log).not.toBeInViewport({ ratio: 0.01 });
     await expect(page.getByLabel(/Command prompt/)).toBeVisible();
-    await page.getByRole("button", { name: "Show the log again" }).click();
-    await expect.poll(height).toBeGreaterThan(150);
 
+    await step("Normal size").click();
+    await expect.poll(async () => Math.abs((await height()) - normal)).toBeLessThan(4);
+  });
+
+  test("the fold closes it and the pill comes back", async ({ page }) => {
+    await openCase(page);
+    const win = await openConsole(page);
     await page.getByRole("button", { name: "Close the console" }).click();
     await expect(win).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Open the console" })).toBeVisible();
   });
 
-  test("a command typed while shrunk opens the log so its answer is visible", async ({ page }) => {
+  test("a command typed while it is prompt-only opens the log so the answer is visible", async ({ page }) => {
     await openCase(page);
     await openConsole(page);
-    await page.getByRole("button", { name: "Shrink to just the prompt" }).click();
+    await page.getByRole("button", { name: "Prompt only", exact: true }).click();
     await type(page, "help");
     await expect.poll(async () => (await page.locator("[role=log]").boundingBox())?.height ?? 0).toBeGreaterThan(150);
     await expect(page.getByRole("log")).toContainText("goto <page>");
   });
 
-  test("each dot shows its glyph when you point at them", async ({ page }) => {
+  test("it is not a plain rectangle, and it carries colour", async ({ page }) => {
     await openCase(page);
     await openConsole(page);
-    const glyph = page.getByRole("button", { name: "Close the console" }).locator("svg");
-    await expect(glyph).toHaveCSS("opacity", "0");
-    await page.getByRole("button", { name: "Close the console" }).hover();
-    await expect(glyph).toHaveCSS("opacity", "1");
+    const css = await page.locator(".glass-win").evaluate((el) => { const c = getComputedStyle(el); return { r: [c.borderTopLeftRadius, c.borderTopRightRadius, c.borderBottomRightRadius, c.borderBottomLeftRadius], bg: c.backgroundImage }; });
+    expect(new Set(css.r).size).toBeGreaterThan(1);
+    expect(css.bg).toMatch(/rgba?\(198, 244, 50/);
+    await expect(page.locator(".glass-tab")).toBeVisible();
   });
 });
 

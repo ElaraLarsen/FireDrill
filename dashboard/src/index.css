@@ -162,74 +162,95 @@ html { scrollbar-color: var(--on-board) var(--board); }
 .drift.slow { animation-duration: 20s; animation-delay: -6s; }
 .spin-seal { animation: spin 40s linear infinite; transform-box: fill-box; transform-origin: 50% 50%; }
 
-/* ── glass: the console and its pill. Frosted, lit from the top left, and tinted by the page it floats
-   over: text uses the board's own ink, so it reads on cream, sky, rose, lilac and forest alike. ── */
-.glass-win, .glass-pill {
+/* ── glass, with colour: the console, its tab and its pill. Frosted panes lit from the top left, with
+   soft lime, sky, lilac and rose light pooled inside and a rainbow edge. The ink is the page's own
+   --on-board, so the text reads on cream, sky, rose, lilac and forest alike. ── */
+.glass-win, .glass-pill, .glass-tab {
   --fg: var(--on-board);
   --fg2: color-mix(in oklab, var(--on-board) 78%, transparent);
-  --fg3: color-mix(in oklab, var(--on-board) 60%, transparent);
+  --fg3: color-mix(in oklab, var(--on-board) 62%, transparent);
   --wash: color-mix(in oklab, var(--on-board) 10%, transparent);
   --hair: color-mix(in oklab, var(--on-board) 14%, transparent);
   --t-accent: #2f5d00; --t-fixer: #3b6600; --t-breaker: #b81d52; --t-gate: #14659f; --t-human: #5b3fc4;
   --t-pass: #0a6f43; --t-fail: #b3201f; --t-mute: var(--fg3);
-  position: relative; isolation: isolate; color: var(--fg);
+  isolation: isolate; color: var(--fg);
   background:
-    linear-gradient(145deg, rgb(255 255 255 / .55), rgb(255 255 255 / .14) 55%, rgb(255 255 255 / .34)),
-    color-mix(in oklab, var(--board) 64%, transparent);
+    radial-gradient(70% 90% at 4% 0%, rgb(198 244 50 / .34), transparent 62%),
+    radial-gradient(60% 80% at 100% 8%, rgb(143 203 242 / .42), transparent 64%),
+    radial-gradient(70% 90% at 82% 108%, rgb(196 179 246 / .38), transparent 64%),
+    radial-gradient(45% 70% at 0% 100%, rgb(255 143 177 / .3), transparent 66%),
+    linear-gradient(145deg, rgb(255 255 255 / .5), rgb(255 255 255 / .12) 58%, rgb(255 255 255 / .3)),
+    color-mix(in oklab, var(--board) 58%, transparent);
   -webkit-backdrop-filter: blur(30px) saturate(190%); backdrop-filter: blur(30px) saturate(190%);
-  border: 1px solid rgb(255 255 255 / .62);
   box-shadow:
-    inset 0 1.5px 0 rgb(255 255 255 / .9), inset 0 -1px 0 rgb(255 255 255 / .28), inset 0 0 30px rgb(255 255 255 / .22),
+    inset 0 1.5px 0 rgb(255 255 255 / .9), inset 0 -1px 0 rgb(255 255 255 / .28), inset 0 0 30px rgb(255 255 255 / .2),
     0 34px 70px -26px rgb(15 42 29 / .5), 0 4px 14px rgb(15 42 29 / .16);
 }
-.glass-win { border-radius: 26px; cursor: text; }
-.glass-pill { border-radius: 999px; }
-/* the lit edge: a soft highlight pooled in the top-left corner, like light caught in the glass */
-.glass-win::before, .glass-pill::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
-  background: radial-gradient(90% 70% at 0% 0%, rgb(255 255 255 / .5), transparent 60%), radial-gradient(60% 50% at 100% 100%, rgb(255 255 255 / .2), transparent 70%); }
-.board-dark .glass-win, .board-dark .glass-pill {
+/* Not a rectangle: a leaf. Two big opposite corners, two small ones, with a tab riding the top-left. */
+.glass-win, .glass-pill { position: relative; }
+.glass-win { border-radius: 14px 52px 14px 52px; cursor: text; }
+.glass-tab { border-radius: 22px 22px 6px 22px; }
+.glass-pill { border-radius: 26px 8px 26px 8px; }
+/* the rainbow edge, drawn as a masked gradient border so it follows every curve */
+.glass-win::after, .glass-pill::after, .glass-tab::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; padding: 1.5px; pointer-events: none;
+  background: conic-gradient(from 200deg at 50% 50%, #c6f432, #8fcbf2, #c4b3f6, #ff8fb1, #c6f432);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; opacity: .85; }
+.board-dark .glass-win, .board-dark .glass-pill, .board-dark .glass-tab {
   --t-accent: var(--color-lime); --t-fixer: #c6f432; --t-breaker: #ff8fb1; --t-gate: #8fcbf2; --t-human: #c4b3f6;
   --t-pass: #5ce6a6; --t-fail: #ff8a8a;
   background:
-    linear-gradient(145deg, rgb(255 255 255 / .2), rgb(255 255 255 / .05) 55%, rgb(255 255 255 / .12)),
-    color-mix(in oklab, #07180f 62%, transparent);
-  border-color: rgb(255 255 255 / .22);
-  box-shadow: inset 0 1.5px 0 rgb(255 255 255 / .35), inset 0 -1px 0 rgb(255 255 255 / .08), inset 0 0 30px rgb(255 255 255 / .06), 0 34px 70px -26px rgb(0 0 0 / .7), 0 4px 14px rgb(0 0 0 / .3);
+    radial-gradient(70% 90% at 4% 0%, rgb(198 244 50 / .34), transparent 62%),
+    radial-gradient(60% 80% at 100% 8%, rgb(143 203 242 / .4), transparent 64%),
+    radial-gradient(70% 90% at 82% 108%, rgb(196 179 246 / .42), transparent 64%),
+    radial-gradient(45% 70% at 0% 100%, rgb(255 143 177 / .36), transparent 66%),
+    linear-gradient(145deg, rgb(255 255 255 / .16), rgb(255 255 255 / .04) 58%, rgb(255 255 255 / .1)),
+    color-mix(in oklab, #07180f 64%, transparent);
+  box-shadow: inset 0 1.5px 0 rgb(255 255 255 / .3), inset 0 -1px 0 rgb(255 255 255 / .06), 0 34px 70px -26px rgb(0 0 0 / .7), 0 4px 14px rgb(0 0 0 / .3);
 }
-.board-dark .glass-win::before, .board-dark .glass-pill::before { background: radial-gradient(90% 70% at 0% 0%, rgb(255 255 255 / .2), transparent 60%); }
 .glass-bar { background: color-mix(in oklab, var(--on-board) 5%, transparent); }
 .glass-bar:first-child { border-bottom: 1px solid var(--hair); }
 .glass-bar.border-t { border-top: 1px solid var(--hair); }
-.glass-win :where(button) { border-radius: 12px; cursor: pointer; }
+.glass-win :where(button), .glass-tab :where(button) { cursor: pointer; }
 .glass-btn { background: rgb(255 255 255 / .38); border: 1px solid rgb(255 255 255 / .6); color: var(--fg); box-shadow: inset 0 1px 0 rgb(255 255 255 / .8); transition: background-color .2s, transform .16s var(--ease-out); }
 .glass-btn:hover:not(:disabled) { background: rgb(255 255 255 / .62); }
 .board-dark .glass-btn { background: rgb(255 255 255 / .1); border-color: rgb(255 255 255 / .2); box-shadow: inset 0 1px 0 rgb(255 255 255 / .25); }
 .board-dark .glass-btn:hover:not(:disabled) { background: rgb(255 255 255 / .2); }
-.glass-primary { background: var(--fg); color: var(--board); font-weight: 600; transition: filter .2s; }
-.glass-primary:hover:not(:disabled) { filter: brightness(1.15); }
-.glass-win :focus-visible, .glass-pill :focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+/* "next": a slanted lime-to-sky blade */
+.glass-primary { background: linear-gradient(100deg, #c6f432, #8fcbf2); color: var(--color-forest); font-weight: 700; clip-path: polygon(11px 0, 100% 0, calc(100% - 11px) 100%, 0 100%); padding-inline: 1.1rem !important; transition: filter .2s; }
+.glass-primary:hover:not(:disabled) { filter: saturate(1.25) brightness(1.05); }
+.glass-win :focus-visible, .glass-pill :focus-visible, .glass-tab :focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 .glass-win .term-input:focus-visible { outline: none; }
-/* window controls: three coloured dots that show what they do when you point at them */
-.dot { position: relative; box-shadow: inset 0 0 0 .5px rgb(0 0 0 / .25); transition: transform .15s var(--ease-out), filter .15s; }
-.dot::after { content: ""; position: absolute; inset: -6px; }
-.dot:hover { filter: brightness(1.08); }
-.dot:active { transform: scale(.86); }
-.dot-glyph { opacity: 0; transition: opacity .12s; }
-[role="group"]:hover > .dot .dot-glyph, .dot:focus-visible .dot-glyph { opacity: 1; }
+
+/* the pill's mark: a small orb of the four hues, turning slowly */
+.orb { display: inline-block; width: 20px; height: 20px; border-radius: 50%; background: conic-gradient(from 0deg, #c6f432, #8fcbf2, #c4b3f6, #ff8fb1, #c6f432); box-shadow: inset 0 0 0 3px color-mix(in oklab, var(--board) 80%, transparent); animation: spin 9s linear infinite; }
+/* size steps: three bars; the current one is lit in colour */
+.step { border-radius: 4px; transition: transform .15s var(--ease-out); }
+.step:hover { transform: translateY(-2px); }
+.step:active { transform: scale(.88); }
+.step-bar { border-radius: 3px; background: color-mix(in oklab, var(--on-board) 30%, transparent); transition: background .25s, box-shadow .25s; }
+.step:hover .step-bar { background: color-mix(in oklab, var(--on-board) 55%, transparent); }
+.step-bar.on { background: linear-gradient(180deg, #8fcbf2, #c6f432); box-shadow: 0 0 0 1.5px color-mix(in oklab, var(--on-board) 80%, transparent), 0 0 14px rgb(198 244 50 / .55); }
+/* fold: a lozenge turned a quarter, whose mark swings open when you reach for it */
+.fold { position: relative; color: var(--fg); }
+.fold::before { content: ""; position: absolute; inset: 3px; border-radius: 9px; transform: rotate(45deg); background: linear-gradient(135deg, rgb(255 143 177 / .85), rgb(196 179 246 / .85)); transition: transform .3s var(--ease-out), border-radius .3s, filter .2s; }
+.fold:hover::before { transform: rotate(135deg); border-radius: 50%; filter: brightness(1.08); }
+.fold:active::before { transform: rotate(135deg) scale(.86); }
+.fold-mark { position: relative; color: var(--color-forest); transition: transform .3s var(--ease-out); }
+.fold:hover .fold-mark { transform: translateY(1px) scale(1.1); }
 .term-input { caret-color: var(--fg); caret-shape: block; font: inherit; border-radius: 0; }
 .term-input:focus-visible { outline: none; }
 .term-log { scrollbar-width: thin; scrollbar-color: var(--hair) transparent; overscroll-behavior: contain; }
 .term-log::-webkit-scrollbar-thumb { background: var(--hair); border-color: transparent; }
 .term-log::-webkit-scrollbar-track { background: transparent; }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass-win, .glass-pill { background: color-mix(in oklab, var(--board) 92%, white); }
-  .board-dark .glass-win, .board-dark .glass-pill { background: #0c2318; }
+  .glass-win, .glass-pill, .glass-tab { background: color-mix(in oklab, var(--board) 92%, white); }
+  .board-dark .glass-win, .board-dark .glass-pill, .board-dark .glass-tab { background: #0c2318; }
 }
 @keyframes row-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .row-in { animation: row-in .22s var(--ease-out) both; }
 
 @media (prefers-reduced-motion: reduce) {
-  .blink, .shimmer, .spin-slow, .ripple, .shake, .row-in, .pingring::after, .marquee, .flicker, .drift, .spin-seal { animation: none !important; }
+  .blink, .shimmer, .spin-slow, .ripple, .shake, .row-in, .orb, .pingring::after, .marquee, .flicker, .drift, .spin-seal { animation: none !important; }
   .nb-btn { transition: none; }
   .flip-inner, .press, html, body { transition: none; }
 }
