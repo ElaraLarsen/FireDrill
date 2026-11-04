@@ -1,7 +1,7 @@
 # RELAY_STATE — FireDrill live ledger
 
 ## Last Active Agent
-**Presentation lane (Teammate 2)**: 2026-11-04 ~16:25 IST: mixed palette (lime, tangerine, sky and lilac on cream and forest) replaces the all-green look, plus a fix for a step ping-pong that fired repeated confetti. Fonts and the page-per-step flow unchanged. Local branch `ui/deep-courtroom-pages`, uncommitted and unpushed by request. Before that: presentation lane 16:15 IST (green), 16:10 IST (sunset), 16:00 IST (riso), 15:30 IST (night court), 14:45 IST (bright UI, D22), Codex 13:15 IST.
+**Presentation lane (Teammate 2)**: 2026-11-04 ~16:50 IST: neo-brutalist landing page at `#/landing` (hand-drawn SVG courthouse hero, GSAP interactions), pushed to `main` at the user's request. Before that: presentation lane 16:30 IST (mixed palette pushed to `main` as 0aaf3ee), 16:25 IST (mixed palette), 16:15 IST (green), 16:10 IST (sunset), 16:00 IST (riso), 15:30 IST (night court), 14:45 IST (bright UI, D22), Codex 13:15 IST.
 
 ## Winning Project
 **FireDrill: an adversarial hotfix courtroom in chat.**
@@ -37,7 +37,53 @@ Hook: Switch's own incident-response docs admit human approval is "instructions 
 - [x] Presentation lane built and tested (telemetry, dashboard, compose, README, demo script, blog). Compose unrun (no Docker daemon); no live Switch yet.
 - [ ] First live end-to-end drill
 
-## Completed in This Turn (presentation lane, phase 11: mixed palette — LOCAL ONLY)
+## Completed in This Turn (presentation lane, phase 12: landing page + GSAP — on main)
+- The user asked for the mixed palette on `main`. It was committed on `ui/deep-courtroom-pages` and fast-forwarded to `main`: `834fee0..0aaf3ee main -> main`.
+- The user then asked for a landing page modelled on threeui.com's "Kage" landing: a loader, a layered hero with a giant wordmark behind the foreground, a story band with stats, a pinned card reel, a chapters grid, a big closing word, and a three-column footer. Our data, our palette and fonts, a self-built background, and a neo-brutalist theme. Later they asked for GSAP.
+- **Files:**
+  - `dashboard/src/ui/Landing.tsx` (new).
+  - `src/ui/CourtScene.tsx` (new): the SVG hero world and the confetti canvas.
+  - `src/ui/landingFx.tsx` (new): GSAP 3.13.0 with ScrollTrigger and SplitText, covering the cursor ring, magnets, line reveals, velocity skew, the hero fade and the footer wordmark. All of it goes through `gsap.matchMedia` for reduced motion and fine pointers.
+  - `src/router.ts`: a `landing` route, plus a test in `src/pages.test.ts`.
+  - `src/App.tsx`: renders the landing page; in-page jumps go through Lenis.
+  - `src/index.css`: `.nb*` brutal utilities, marquee, flicker, drift.
+  - `package.json`: `gsap@3.13.0`.
+  - `DESIGN.md`.
+- **Honesty:** every figure on the page is counted from `fixtureRuns()` with `replay()`:
+  - 3 drills;
+  - 74 gate test runs;
+  - 3 attacks;
+  - 3 merges.
+
+  A note under the stats and a tag on the cases say these are scripted replays with a real verifier, matching the fixtures' `provenance`.
+
+Verification (run here, 16:47 IST):
+```
+$ cd dashboard && npx tsc -b       -> exit 0
+$ cd dashboard && npx vitest run   -> Tests 46 passed (46)
+$ cd dashboard && npm run build    -> ✓ built in 341ms (838 kB JS, 225 kB gzip; same >500 kB warning)
+```
+Browser pane, http://127.0.0.1:5188/#/landing:
+- **Gap between the buttons and the wordmark's capitals** (`getScreenCTM`):
+
+  | Viewport | Gap |
+  |---|---|
+  | 1920×1080 | 235px |
+  | 1440×900 | 150px |
+  | 1366×768 | 59px |
+  | 1280×680 | 2px |
+
+- **Mobile 375×812:** no horizontal overflow (375/375), and the tall composition is used.
+- **Case reel:** reads 01/03 → 02/03 → 03/03 under wheel scroll; cards are sorted by incident number.
+- **GSAP:**
+  - the cursor ring scales to 2.3 over a button;
+  - the magnet offsets the wrapper;
+  - SplitText made 20 masked lines and 9 chars;
+  - the band transform keeps `rotate(±2deg)` and adds `skew()`;
+  - the footer chars reach rest at the bottom of the page. This took a fix: the end is now `"max"`, because the old end was never reached.
+- **Console:** the only errors were from hot-reload states while editing. A clean reload loads the page fine.
+
+## Earlier this session (presentation lane, phase 11: mixed palette — now on main)
 The user liked the green look but found it "green, green, green" and asked for mixed colours. I kept cream and forest as the ground and gave each of four hues one meaning:
 - lime #C6F432: the fixer;
 - tangerine #FF8A3D: the attack;

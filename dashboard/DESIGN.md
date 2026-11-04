@@ -94,6 +94,38 @@ Hash routes, so any static host works:
   - A hue never changes meaning. If tangerine shows up, it is about the attack.
   - Banned: navy, pink, purple-blue gradients, pure black and pure white. The only gradients are the liquid field and the hero's forest scrim.
 
+## Landing page (`#/landing`)
+
+A front door for people who have never seen FireDrill. It borrows its structure from a cinematic, chaptered landing page:
+
+1. a drawn world under the title;
+2. a story band with figures;
+3. a pinned reel;
+4. the steps;
+5. a closing word;
+6. a footer.
+
+It is styled **neo-brutalist** in this same palette: 3px forest outlines, hard offset shadows with no blur (`.nb`, `.nb-lg`, and `.nb-btn`, which sinks into its shadow when pressed), flat fills and dot-grid grounds.
+
+- **Hero** (`src/ui/CourtScene.tsx`): a hand-built SVG, not a picture. The courthouse's five columns wear the five steps' colours, the gate's seal is the sun, and FIREDRILL stands behind the front steps like an inscription. There is a lantern, flat clouds, and outlined confetti on a canvas. The layers part with the pointer and the scroll. There are two compositions: wide, and tall for phones and portrait screens.
+- **Sections:**
+  - Story: the stats are counted from the bundled recordings and labelled as scripted replays.
+  - Two crossing tickers carry the rules.
+  - A reel of the three cases, pinned on wide screens and stacked on narrow ones, shows each verdict trail from the recording.
+  - The five steps.
+  - The verdict, with a giant outlined "Merged".
+  - The footer.
+- **Motion:**
+  - `motion` handles component entrances.
+  - **GSAP** (`src/ui/landingFx.tsx`, with ScrollTrigger and SplitText) handles:
+    - a cursor ring that swells over controls;
+    - magnetic main buttons;
+    - paragraphs that rise line by line;
+    - tickers that skew with scroll speed;
+    - the hero copy drifting away;
+    - the footer wordmark assembling letter by letter.
+  - The cursor and magnets run only on a fine pointer. Under reduced motion, GSAP does nothing.
+
 ## Typography
 
 - **Instrument Serif speaks:** page titles (the last word in italic, via `Headline`), panel headings, case names, big counters and the verdict.

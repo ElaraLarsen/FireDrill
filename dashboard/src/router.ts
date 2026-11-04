@@ -1,11 +1,13 @@
 // A tiny hash router: every page has its own address, so back/forward and shared links work on any
-// static host. Routes: #/ (pick a case), #/case/<run>/<page>?step=<n|end>, #/live/<page>.
+// static host. Routes: #/ (pick a case), #/landing (the landing page), #/case/<run>/<page>?step=<n|end>,
+// #/live/<page>.
 
 import { useEffect, useState } from "react";
 import { isPage, type Page } from "./pages";
 
 export type Route =
   | { name: "home" }
+  | { name: "landing" }
   | { name: "case"; run: string; page: Page; step: number | "end" | null }
   | { name: "live"; page: Page };
 
@@ -18,12 +20,14 @@ export function parse(hash: string): Route {
     return { name: "case", run: parts[1], page: isPage(parts[2]) ? parts[2] : "case", step: st === "end" ? "end" : st === null ? null : Math.max(0, Number(st) || 0) };
   }
   if (parts[0] === "live") return { name: "live", page: isPage(parts[1]) ? parts[1] : "case" };
+  if (parts[0] === "landing") return { name: "landing" };
   return { name: "home" };
 }
 
 export function href(r: Route): string {
   if (r.name === "case") return `#/case/${encodeURIComponent(r.run)}/${r.page}${r.step !== null ? `?step=${r.step}` : ""}`;
   if (r.name === "live") return `#/live/${r.page}`;
+  if (r.name === "landing") return "#/landing";
   return "#/";
 }
 

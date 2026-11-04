@@ -11,6 +11,7 @@ import { narrate, narrateState } from "./story";
 import { AttackPage } from "./ui/AttackPage";
 import { CasePage } from "./ui/CasePage";
 import { HOME_BOARD, Home } from "./ui/Home";
+import { LANDING_BOARD, Landing } from "./ui/Landing";
 import { RoomPage } from "./ui/RoomPage";
 import { RulingPage } from "./ui/RulingPage";
 import { Dock, pageIcon, TopBar, Trail } from "./ui/Shell";
@@ -112,6 +113,14 @@ export default function App() {
     setPlaying(true);
   }, [go]);
   const home = () => { setPlaying(false); go({ name: "home" }); };
+  // In-page jumps on the landing page go through Lenis, so they glide like the rest of the scroll.
+  const scrollToId = (id: string) => {
+    const el = id === "top" ? 0 : document.getElementById(id);
+    if (el === null) return;
+    if (lenis.current) lenis.current.scrollTo(el, { offset: id === "top" ? 0 : -24, duration: 1.2 });
+    else if (el === 0) window.scrollTo({ top: 0 });
+    else el.scrollIntoView();
+  };
   const goLive = () => { follow.current = true; setPlaying(false); go({ name: "live", page: pageForState(liveState) }); };
   const toggle = useCallback(() => {
     if (!run) return;
@@ -148,7 +157,7 @@ export default function App() {
   const state = run ? replay(run.frames, step) : liveState;
   const frame = run && step > 0 ? run.frames[step - 1] : null;
   const line = run ? narrate(frame, state.approvers) : narrateState(state);
-  const page: Page = route.name === "home" ? "case" : route.page;
+  const page: Page = route.name === "home" || route.name === "landing" ? "case" : route.page;
 
   // Celebrate the moment the gate merges (not when a page simply opens on a merged drill).
   const merged = state.verdicts.some((v) => v.merged);
@@ -173,7 +182,7 @@ export default function App() {
   }, [pageKey, page]);
 
   // The page you are on is printed in its own ink: the whole board turns that colour.
-  const ink = route.name === "home" ? HOME_BOARD : PAGE_INK[page];
+  const ink = route.name === "home" ? HOME_BOARD : route.name === "landing" ? LANDING_BOARD : PAGE_INK[page];
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty("--board", ink.board);
@@ -183,6 +192,23 @@ export default function App() {
   }, [ink]);
 
   const runFor = (inc: string) => runs.find((r) => r.incident === inc);
+
+  if (route.name === "landing") {
+    const first = runs.find((r) => r.source === "fixture") ?? runs[0];
+    return (
+      <MotionConfig reducedMotion="user">
+        <a href="#story" onClick={(e) => { e.preventDefault(); scrollToId("story"); }} className="skip">Skip to the story</a>
+        <div className="grain" aria-hidden />
+        <Landing
+          runs={runs}
+          onPick={pick}
+          onEnter={home}
+          scrollTo={scrollToId}
+          onOpen={(pg) => { if (!first) return; follow.current = false; setPlaying(false); go({ name: "case", run: first.id, page: pg, step: "end" }); }}
+        />
+      </MotionConfig>
+    );
+  }
 
   if (route.name === "home") {
     return (

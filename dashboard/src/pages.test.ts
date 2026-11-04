@@ -68,4 +68,8 @@ describe("router", () => {
     expect(parse("#/nope")).toEqual({ name: "home" });
     expect(parse("#/case/x/bogus")).toMatchObject({ page: "case", step: null });
   });
+  it("round-trips the landing page", () => {
+    expect(parse("#/landing")).toEqual({ name: "landing" });
+    expect(href({ name: "landing" })).toBe("#/landing");
+  });
 });
