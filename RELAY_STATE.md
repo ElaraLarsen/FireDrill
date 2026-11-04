@@ -1,7 +1,7 @@
 # RELAY_STATE — FireDrill live ledger
 
 ## Last Active Agent
-**Codex**: 2026-11-04 13:13 IST — dashboard-only design system and UI/UX overhaul, explicitly assigned by user (D21).
+**Codex**: 2026-11-04 13:14 IST — dashboard-only design system and UI/UX overhaul, explicitly assigned by user (D21).
 
 ## Winning Project
 **FireDrill: an adversarial hotfix courtroom in chat.**
@@ -68,6 +68,7 @@ $ git fetch origin main; git rev-list --left-right --count HEAD...origin/main
 - Responsive checks: 1920x1080, 1600x1000, 1280x800, 1024x768, 768x1024, 390x844, 375x812. No horizontal document overflow; desktop document height equals viewport height; trace bottom distance within 1px. Desktop columns measured 3:5:4. Reduced motion: beam animation none, transition 0s.
 - axe-core 4.10.3 WCAG 2A/2AA/2.1AA: no violations at merged desktop, RED mobile and repro-only 1280px. Final merged desktop: 29 passed, violations [], incomplete [color-contrast] because of the ambient gradient. Manual palette contrast on the lightest structural surface: muted 6.64:1, faint 5.44:1, role accents >=5.65:1; merged title 6.29:1 and body 4.82:1. This is not a claim of exhaustive accessibility certification.
 - Impeccable detector: one warning for Inter being overused, retained because the user explicitly requested Inter/Plus Jakarta. Independent finish review: ship; identified lock-label accessibility issue was resolved. Also fixed keyboard access to the scrollable verdict region and clarified the spoken merged status.
+- Main implementation committed as eae0391. The staged whitespace check caught one trailing space in the upstream JetBrains OFL license; normalized it without changing license wording in a follow-up commit.
 - No Python/backend file inspected, modified, or executed; no fixtures regenerated; backend's earlier 68-test result was not rerun. Live Switch was not tested.
 
 ## Previous turn (presentation lane, phase 5b: verdict message fix)
