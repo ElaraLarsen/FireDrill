@@ -20,6 +20,8 @@ services:
       FIREDRILL_TELEMETRY_HOST: 0.0.0.0
       FIREDRILL_STATE_DIR: /app/gate/state
       FIREDRILL_FIXTURES_DIR: /app/dashboard/fixtures
+      # gate/config.py still lists path-traversal; the lab's third incident is pagination-cursor (D16).
+      FIREDRILL_INCIDENTS: idempotency-race,ratelimit-boundary,pagination-cursor
     ports:
       - "8787:8787"
     extra_hosts:
@@ -28,7 +30,6 @@ services:
       - ./gate/state:/app/gate/state
       - ./dashboard/fixtures:/app/dashboard/fixtures:ro
       - /tmp/firedrill:/tmp/firedrill            # evidence remote + key hash written by bootstrap_evidence.sh
-      - /var/run/docker.sock:/var/run/docker.sock  # verify engine starts clean sibling containers
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8787/health', timeout=3)"]
       interval: 10s

@@ -4,21 +4,34 @@ import { fixtureRuns, gateRuns, type Run } from "./fixtures";
 import { emptyState, replay } from "./model";
 import { useLive } from "./useLive";
 
-const host = typeof location !== "undefined" ? location.hostname || "localhost" : "localhost";
-const WS_URL = (import.meta.env.VITE_TELEMETRY_URL as string | undefined) ?? `ws://${host}:8787/telemetry`;
-const HTTP_URL = WS_URL.replace(/^ws/, "http").replace(/\/telemetry$/, "");
+// The gate runs on the same machine as the dashboard. On a hosted copy (Vercel, Pages, ...) there is
+// no gate to follow, so unless VITE_TELEMETRY_URL says otherwise the dashboard is replay-only.
+const host = typeof location !== "undefined" ? location.hostname : "";
+const isLocal = host === "" || host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host.endsWith(".local");
+const WS_URL: string | null = (import.meta.env.VITE_TELEMETRY_URL as string | undefined) ?? (isLocal ? `ws://${host || "localhost"}:8787/telemetry` : null);
+const HTTP_URL = WS_URL ? WS_URL.replace(/^ws/, "http").replace(/\/telemetry$/, "") : null;
 const SPEEDS = [1, 2, 4];
 
 export default function App() {
   const { state: liveState, link } = useLive(WS_URL);
   const [runs, setRuns] = useState<Run[]>(() => fixtureRuns());
-  const [runId, setRunId] = useState<string | null>(null);
-  const [step, setStep] = useState(0);
+  // Deep link: ?replay=<run id>&step=<n|end> opens a recorded drill paused at that frame.
+  const deep = useMemo(() => {
+    const q = new URLSearchParams(typeof location !== "undefined" ? location.search : "");
+    const id = q.get("replay");
+    const run = id ? fixtureRuns().find((r) => r.id === id) : undefined;
+    if (!run) return null;
+    const st = q.get("step");
+    return { id: run.id, step: st === "end" || st === null ? run.frames.length : Math.max(0, Math.min(run.frames.length, Number(st) || 0)) };
+  }, []);
+  const [runId, setRunId] = useState<string | null>(deep?.id ?? null);
+  const [step, setStep] = useState(deep?.step ?? 0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
 
   useEffect(() => {
     let alive = true;
+    if (!HTTP_URL) return;
     gateRuns(HTTP_URL).then((g) => { if (alive && g.length) setRuns((r) => [...g, ...r.filter((x) => x.source === "fixture")]); });
     return () => { alive = false; };
   }, [link]);
@@ -29,7 +42,10 @@ export default function App() {
   useEffect(() => {
     if (!playing || !run) return;
     if (step >= total) { setPlaying(false); return; }
-    const t = window.setTimeout(() => setStep((s) => Math.min(total, s + 1)), 900 / speed);
+    // Check rows stream quickly, verdicts and room events linger so the stamp can land.
+    const next = run.frames[step]?.kind;
+    const base = next === "check" ? 260 : next === "verdict" ? 1300 : 800;
+    const t = window.setTimeout(() => setStep((s) => Math.min(total, s + 1)), base / speed);
     return () => window.clearTimeout(t);
   }, [playing, step, total, speed, run]);
 
@@ -54,11 +70,11 @@ export default function App() {
 
         {run ? (
           <span className="rounded-sm border-2 border-amber bg-amber px-2 py-0.5 text-[12px] font-black uppercase text-ink">
-            Replay{run.scripted ? " · scripted" : ""} · {run.title}
+            Replay{run.scripted && !/scripted/i.test(run.title) ? " · scripted" : ""} · {run.title}
           </span>
         ) : (
-          <span className={`rounded-sm border px-2 py-0.5 text-[12px] font-bold uppercase ${link === "live" ? "border-ok text-ok" : link === "connecting" ? "border-amber text-amber" : "border-hot text-hot"}`}>
-            {link === "live" ? "● live" : link === "connecting" ? "connecting…" : "gate offline"}
+          <span className={`rounded-sm border px-2 py-0.5 text-[12px] font-bold uppercase ${link === "live" ? "border-ok text-ok" : link === "connecting" || link === "static" ? "border-amber text-amber" : "border-hot text-hot"}`}>
+            {link === "live" ? "● live" : link === "connecting" ? "connecting…" : link === "static" ? "static demo · replay only" : "gate offline"}
           </span>
         )}
 

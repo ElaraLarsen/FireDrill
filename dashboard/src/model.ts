@@ -25,6 +25,9 @@ export interface Verdict {
   discarded: { name: string; reason: string }[];
   runner?: { image?: string; network?: string };
   notes: string[];
+  /** Local verification matrix recordings label what was verified: buggy | naive | naive-attacked | reference-attacked. */
+  state?: string;
+  candidate?: string;
   signoff?: { by: string; participant?: string; at: string };
   merged?: { main_sha: string; fix_sha: string; by: string; at: string };
   startedTs: string;
@@ -49,7 +52,7 @@ export interface State {
   lastTs: string;
 }
 
-export const INCIDENTS = ["idempotency-race", "ratelimit-boundary", "path-traversal"] as const;
+export const INCIDENTS = ["idempotency-race", "ratelimit-boundary", "pagination-cursor"] as const;
 
 export const emptyState = (): State => ({
   roomId: "", roomName: "", incident: null, brief: "", approvers: [],
@@ -114,6 +117,8 @@ export function reduce(prev: State, f: Frame): State {
       const v = blankVerdict(String(d.verdict_id), f.ts);
       v.fix = d.fix ? { branch: d.fix.branch, sha: d.fix.sha } : undefined;
       v.attack = d.attack ? { branch: d.attack.branch, sha: d.attack.sha } : null;
+      v.state = d.state;
+      v.candidate = d.candidate_sha;
       next.verdicts = [...s.verdicts.filter((x) => x.id !== v.id), v];
       break;
     }
@@ -139,6 +144,8 @@ export function reduce(prev: State, f: Frame): State {
         discarded: Array.isArray(d.discarded_attacks) ? d.discarded_attacks : [],
         runner: d.runner,
         notes: Array.isArray(d.notes) ? d.notes : [],
+        state: d.state ?? v.state,
+        candidate: d.candidate_sha ?? v.candidate,
         finishedTs: f.ts,
       };
       next.incident = next.incident ?? d.incident ?? null;
@@ -174,6 +181,18 @@ export function replay(frames: Frame[], upTo: number): State {
 export const latest = <T,>(xs: T[]): T | undefined => xs[xs.length - 1];
 export const short = (sha: string | undefined) => (sha ? sha.slice(0, 7) : "—");
 
+/** Did this verdict run against an attack? Real gate frames carry `attack`; verify-only recordings only carry attack checks. */
+export const faced = (v: Verdict): boolean => Boolean(v.attack) || v.checks.some((c) => c.kind === "attack");
+
+const STATE_LABEL: Record<string, { long: string; short: string }> = {
+  buggy: { long: "Unpatched baseline (the bug)", short: "baseline" },
+  naive: { long: "Naive fix", short: "naive fix" },
+  "naive-attacked": { long: "Naive fix vs hostile attack", short: "naive fix + attack" },
+  "reference-attacked": { long: "Reference fix vs hostile attack", short: "reference fix + attack" },
+};
+export const stateLabel = (state: string | undefined, kind: "long" | "short" = "long"): string | null =>
+  state ? (STATE_LABEL[state]?.[kind] ?? state) : null;
+
 export type Stamp = { label: string; tone: "pending" | "red" | "green" | "merged" | "error" | "idle" };
 
 export function stamp(s: State): Stamp {
@@ -182,9 +201,9 @@ export function stamp(s: State): Stamp {
   if (v.merged) return { label: "MERGED TO MAIN", tone: "merged" };
   switch (v.result) {
     case "PENDING": return { label: "PENDING", tone: "pending" };
-    case "RED": return { label: v.attack ? "RED — BROKEN BY RED-TEAM" : "RED — REPRO FAILED", tone: "red" };
+    case "RED": return { label: faced(v) ? "RED — BROKEN BY RED-TEAM" : "RED — REPRO FAILED", tone: "red" };
     case "ERROR": return { label: "ERROR — GATE FAULT", tone: "error" };
-    case "GREEN": return v.attack
+    case "GREEN": return faced(v)
       ? { label: "GREEN — SURVIVED ALL ATTACKS", tone: "green" }
       : { label: "GREEN ON REPRO ONLY — NO ATTACK YET", tone: "pending" };
   }
@@ -204,7 +223,7 @@ export function signOff(s: State): SignOff {
   if (v.signoff) return { phase: "signed", text: `Signed off by ${v.signoff.by}. Gate is merging…` };
   if (v.result === "PENDING") return { phase: "blocked", text: "Verification running in a clean container." };
   if (v.result !== "GREEN") return { phase: "blocked", text: `${v.id} is ${v.result}. Sign-off is locked until a fix is GREEN.` };
-  if (!v.attack) return { phase: "no_attack", text: "No attack, no sign-off." };
+  if (!faced(v)) return { phase: "no_attack", text: "No attack, no sign-off." };
   const who = s.approvers.length ? s.approvers.map((a) => `@${a}`).join(" / ") : "a named approver";
   return { phase: "awaiting", verdictId: v.id, text: `Awaiting APPROVE ${v.id} from ${who}` };
 }

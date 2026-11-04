@@ -19,7 +19,7 @@ Target length 3:00. Screen: Mattermost on the left half, the courtroom dashboard
 ### 0:45–1:15  A naive fix
 *On screen: the fixer posts `@firedrill-gate SUBMIT fix/idempotency-race <sha>`. Dashboard: verdict row animates in, stamp reads GREEN ON REPRO ONLY.*
 
-"The fixer wraps the handler in a lock and submits it. The gate checks it in a clean container. The repro passes. Look at the stamp: green on repro only. And the sign-off box says, no attack, no sign-off. I can't approve this, even though it's green."
+"The fixer wraps the handler in a lock and submits it. The gate checks it in a fresh workspace. The repro passes. Look at the stamp: green on repro only. And the sign-off box says, no attack, no sign-off. I can't approve this, even though it's green."
 
 *On screen: type `@firedrill-gate APPROVE <verdict id>`; the gate refuses. Dashboard: refusal line appears.*
 
@@ -47,8 +47,14 @@ Target length 3:00. Screen: Mattermost on the left half, the courtroom dashboard
 
 ---
 
-## Replay-mode take (no Docker, no keys)
-Run `cd dashboard && npm run dev`, open the dashboard, click **▶ Replay Recorded Drill**, and drive it with Step ▶ in time with the narration. The room mirror shows the same messages in the same order. Say once, near 0:20: "This is a recorded drill: real courtroom code and a real guarded merge, with a test verifier standing in for the container runner." Do not describe the replay as a live Switch run.
+## Replay-mode take (no Docker, no keys, no backend)
+Run `cd dashboard && npm run dev` (or open the hosted static demo), click **▶ Replay Recorded Drill**, and drive it with Step ▶ in time with the narration.
+
+Two recordings exist and they differ. Pick the one that matches what you say:
+- `recorded-idempotency-race` (the default) is the real `gate/verify.py` matrix: baseline RED, naive GREEN on repro only, naive + attack RED, reference fix + attack GREEN, and the Rule R3 discard. It has **no room traffic, no sign-off and no merge**. Narrate beats 0:45–2:25 over it, and say once: "This is a recorded run of the real verifier. It stops at the verdict, so there's no human in this one." Skip beat 2:25–2:50.
+- `idempotency-race` with the test verifier (pick it from the dropdown) contains the room messages, the refused APPROVE, the sign-off and the merge. Say once, near 0:20: "Real courtroom code and a real guarded merge, with a test verifier standing in for the real one."
+
+Do not describe either replay as a live Switch run.
 
 ## Shot checklist
 - [ ] Dashboard font size readable at 1080p side by side with Mattermost

@@ -29,12 +29,12 @@ The flow has four commands, all addressed to `@firedrill-gate`:
 
 | Command | Who may send it | What the gate does |
 |---|---|---|
-| `SUBMIT <branch> <sha>` | the fixer | fetch the commit, verify it in a clean container |
+| `SUBMIT <branch> <sha>` | the fixer | fetch the commit, verify it in a fresh workspace |
 | `ATTACK <branch> <sha>` | the breaker | fetch the attack, re-verify the latest fix against it |
 | `APPROVE <verdict id>` | a named approver | merge, if every condition holds |
 | `STATUS` | anyone | post the docket |
 
-A verdict is **GREEN** only when, in a fresh container with no network, the original repro passes, every *valid* attack passes, and an invariant check passes. Otherwise it is RED (something failed) or ERROR (the gate itself had a problem).
+A verdict is **GREEN** only when, in a fresh workspace and process, the original repro passes, every *valid* attack passes, and an invariant check passes. Otherwise it is RED (something failed) or ERROR (the gate itself had a problem).
 
 ## "No attack, no sign-off"
 
@@ -82,13 +82,24 @@ It is fed by `ws://localhost:8787/telemetry`. The gate publishes a frame for eac
 
 ### Replay mode for judges
 
-Judges often have no Docker and no API credits, so the dashboard has a **Replay Recorded Drill** button that steps through recorded frames in the browser. The recording came from our test harness running the real courtroom and a real guarded merge. Its verifier is a test stand-in, and the banner and the verdict's `runner` field say so. A replay is labelled "scripted" everywhere it appears. We think a replay that admits what it is beats a demo that quietly fakes a result.
+Judges often have no Docker and no API credits, so the dashboard has a **Replay Recorded Drill** button that steps through recorded frames in the browser. It needs no backend, so `dashboard/` also deploys as a static site.
+
+There are two kinds of recording, and the banner says which one you're watching.
+
+The first kind comes from our verify engine, run for real on each of the three incidents: `idempotency-race`, `ratelimit-boundary` and `pagination-cursor`. Each goes through four verdicts. V-001 is the unpatched baseline, which fails the repro (RED). V-002 is a naive fix that passes the repro, so it is GREEN but only on the repro. V-003 is that naive fix against a hostile attack, which breaks it (RED). V-004 is the gate's private reference fix against the same attack, which survives (GREEN). In every incident the breaker's over-broad attack, one that fails even on correct code, is discarded under Rule R3 and shown as such.
+
+These recordings stop at the verdict. They hold the gate's verification actions only: no room, no human sign-off, no merge, and V-004 is the reference fix, not an agent's patch. The dashboard says so on the page.
+
+The second kind is the full courtroom flow, including a real guarded git merge, produced by the real courtroom code. Its verifier is a test stand-in, and the `runner` field says so. We think a replay that admits what it is beats a demo that quietly fakes a result.
 
 ## What we haven't done
 
 - **We haven't driven it against a live Switch server yet.** Our build environment couldn't pull the Switch images. The gate's WebSocket client is tested against a local server that speaks Switch's documented frames, but a few runtime details, such as the exact op argument names at 0.31.0, are still to be confirmed with the gate's `--probe` command.
+- **The verifier is not a sandbox.** It runs checks in fresh local workspaces and processes that inherit the network. That is fine for demo code we wrote, and not for untrusted submissions.
 - **The merge enforcement is a local-demo version.** A git hook and a key is a stand-in for what you'd run in production: a protected branch and a GitHub App held by the gate, with the agents limited to read access.
-- **The recorded replay uses a stand-in verifier**, not the container verifier.
+- **The recordings with a real verifier have no human in them.** The ones with a sign-off and a merge use a test verifier.
+
+The test suite is 50 Python tests (the courtroom, the evidence hook, the Switch client, telemetry and the verify matrix) and 8 dashboard tests, all passing on Python 3.12.
 
 ## Why Switch
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  COMMAND_RE, INCIDENTS, attackMatrix, badge, latest, short, signOff, stamp,
+  COMMAND_RE, INCIDENTS, attackMatrix, badge, faced, latest, short, signOff, stamp, stateLabel,
   type Msg, type RoleBadge, type State, type Verdict,
 } from "./model";
 
@@ -78,7 +78,11 @@ export function RoomPanel({ s }: { s: State }) {
   return (
     <Panel title="Switch Room Mirror" sub={s.roomName || s.roomId || "waiting for a room"} follow={s.messages.length}>
       {s.messages.length === 0 ? (
-        <Empty>No room traffic yet. The gate mirrors every message in the room it guards.</Empty>
+        <Empty>
+          {s.frames > 0
+            ? "This record has no room traffic: it holds the gate's verification actions only."
+            : "No room traffic yet. The gate mirrors every message in the room it guards."}
+        </Empty>
       ) : (
         <ul>{s.messages.map((m) => <Line key={m.key} m={m} approvers={s.approvers} />)}</ul>
       )}
@@ -95,7 +99,8 @@ function Chip({ children, tone = "dim" }: { children: ReactNode; tone?: "dim" | 
 export function CasePanel({ s, hasRun, onPickIncident }: { s: State; hasRun: (incident: string) => boolean; onPickIncident: (incident: string) => void }) {
   const fix = latest(s.fixes);
   const atk = latest(s.attacks);
-  const matrixVerdict = [...s.verdicts].reverse().find((v) => v.attack && v.result !== "PENDING");
+  const matrixVerdict = [...s.verdicts].reverse().find((v) => faced(v) && v.result !== "PENDING");
+  const trial = latest(s.verdicts);
   const rows = attackMatrix(matrixVerdict);
   return (
     <Panel title="The Case & Adversarial Matrix" sub={s.incident ?? "no incident"}>
@@ -142,20 +147,31 @@ export function CasePanel({ s, hasRun, onPickIncident }: { s: State; hasRun: (in
           )}
           <div className="mt-2 text-[11px] text-dim">{s.fixes.length} submission{s.fixes.length === 1 ? "" : "s"} so far</div>
         </div>
+      ) : trial?.candidate ? (
+        <div className="mb-5 border border-line bg-raise p-3">
+          <div className="flex flex-wrap items-center gap-2 text-[13px]">
+            <span className="font-bold text-steel">{stateLabel(trial.state) ?? "Candidate"}</span>
+            <span className="text-bone">@ {short(trial.candidate)}</span>
+            <Chip tone="amber">scripted</Chip>
+          </div>
+          <div className="mt-1 text-[12px] text-dim">
+            A real commit verified by the gate. No submission message was recorded for it.
+          </div>
+        </div>
       ) : (
         <Empty>No fix submitted.</Empty>
       )}
 
       <h3 className="mb-1 text-[11px] uppercase tracking-[0.18em] text-dim">
-        Red-team attack matrix{atk ? ` · ${atk.branch} @ ${short(atk.sha)} by ${atk.by}${atk.manual ? " (manual)" : ""}` : ""}
+        Red-team attack matrix{atk ? ` · ${atk.branch} @ ${short(atk.sha)} by ${atk.by}${atk.manual ? " (manual)" : ""}` : matrixVerdict ? ` · ${matrixVerdict.id}` : ""}
       </h3>
       {rows.length === 0 ? (
-        <Empty>{atk ? "Attack filed. Waiting on a verdict that ran it." : "No attack filed. No attack, no sign-off."}</Empty>
+        <Empty>{atk ? "Attack filed. Waiting on a verdict that ran it." : "No attack has faced a fix yet. No attack, no sign-off."}</Empty>
       ) : (
         <ul className="space-y-2">
           {rows.map((r) => (
             <li key={r.name} className="rowin border border-line bg-raise p-2.5 text-[12px]">
-              <div className="font-bold text-bone">{r.name}</div>
+              <div className="break-all font-bold text-bone">{r.name}</div>
               {r.discarded ? (
                 <div className="mt-1 text-hot">✗ Discarded by Rule R3 — {r.discarded}</div>
               ) : (
@@ -197,9 +213,9 @@ function CheckRow({ c }: { c: Verdict["checks"][number] }) {
       <details>
         <summary className="flex cursor-pointer list-none items-center gap-2">
           <span className={`w-4 font-bold ${ok ? "text-ok" : "text-hot"}`}>{ok ? "✓" : "✗"}</span>
-          <span className="font-bold text-bone">{c.name}</span>
-          <span className="text-dim">{c.kind} vs {c.against}</span>
-          <span className="ml-auto text-dim">{c.duration_ms ?? "—"} ms</span>
+          <span className="min-w-0 truncate font-bold text-bone" title={c.name}>{c.name}</span>
+          <span className="shrink-0 text-dim">{c.kind} vs {c.against}</span>
+          <span className="ml-auto shrink-0 text-dim">{c.duration_ms ?? "—"} ms</span>
         </summary>
         <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap bg-ink p-2 text-[11px] text-dim">{c.output_tail?.trim() || "(no output captured)"}</pre>
       </details>
@@ -236,6 +252,9 @@ export function VerdictPanel({ s }: { s: State }) {
         {so.phase === "awaiting" && (
           <div className="mt-2 break-all text-[12px] text-bone">@firedrill-gate APPROVE {so.verdictId}</div>
         )}
+        {s.messages.length === 0 && s.fixes.length === 0 && so.phase !== "merged" && (
+          <div className="mt-2 text-[12px] font-bold text-bone">This recording stops at the verdict: no human sign-off or merge was recorded.</div>
+        )}
         <div className="mt-2 text-[11px] opacity-80">
           Authenticated by Switch participant id, not message text. The gate alone holds the merge key.
         </div>
@@ -254,8 +273,8 @@ export function Docket({ s }: { s: State }) {
   const chips: { key: string; head: string; line: string; tone: string }[] = [];
   for (const v of s.verdicts) {
     const tone = v.result === "GREEN" ? "border-ok text-ok" : v.result === "RED" ? "border-hot text-hot" : v.result === "ERROR" ? "border-violet text-violet" : "border-amber text-amber";
-    const note = v.result === "RED" ? (v.attack ? "broken by red-team" : "repro failed") : v.result === "GREEN" ? (v.attack ? "survived attacks" : "repro only") : v.result.toLowerCase();
-    chips.push({ key: v.id, head: v.id.replace(/^V-.*-(\d+)$/, "V-$1"), line: `${v.result} · ${note} · fix ${short(v.fix?.sha)}`, tone });
+    const note = stateLabel(v.state, "short") ?? (v.result === "RED" ? (faced(v) ? "broken by red-team" : "repro failed") : v.result === "GREEN" ? (faced(v) ? "survived attacks" : "repro only") : v.result.toLowerCase());
+    chips.push({ key: v.id, head: v.id.replace(/^V-.*-(\d+)$/, "V-$1"), line: `${v.result} · ${note} · ${short(v.fix?.sha ?? v.candidate)}`, tone });
     if (v.signoff) chips.push({ key: `${v.id}-so`, head: "Human sign-off", line: `${v.signoff.by} approved ${v.id}`, tone: "border-ok text-ok" });
     if (v.merged) chips.push({ key: `${v.id}-m`, head: "Merged", line: `main ${short(v.merged.main_sha)}`, tone: "border-ok bg-ok text-ink" });
   }

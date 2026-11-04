@@ -76,9 +76,10 @@ def test_drill_emits_every_frame_kind_and_can_record_the_fixture(evidence, tmp_p
         FIXTURE.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(log, FIXTURE)
         META.write_text(json.dumps({
-            "title": "Idempotency race: naive fix broken, root-cause fix merged",
+            "title": "Courtroom flow with a test verifier: idempotency-race, merged",
             "incident": INC,
             "scripted": True,
+            "verifier": "test-stand-in",
             "provenance": PROVENANCE,
         }, indent=2) + "\n")
 
@@ -92,4 +93,4 @@ def test_committed_fixture_is_a_complete_drill():
     assert results == ["GREEN", "RED", "GREEN"]
     assert any(f["kind"] == "merge" for f in frames)
     meta = json.loads(META.read_text())
-    assert meta["scripted"] is True and "stand-in" in meta["provenance"]
+    assert meta["scripted"] is True and meta["verifier"] == "test-stand-in" and "stand-in" in meta["provenance"]
