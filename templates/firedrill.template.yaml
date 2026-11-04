@@ -1,0 +1,152 @@
+# FireDrill: an adversarial hotfix courtroom.
+#
+# A fixer (Claude Code) patches an incident in its own directory. A breaker
+# (Codex) attacks that patch from its own directory with hostile tests. A
+# custom gate agent (firedrill-gate, our Python service on the Switch agent
+# protocol) holds the only write credential to the protected branch, runs the
+# verification gate, and merges only when the patch survives every attack AND
+# a named human signs off in the thread.
+#
+# The gate is NOT created by this template: Switch templates only create
+# agents run by a provider (claude, codex, opencode, antigravity, cursor).
+# Register it first with `scripts/register_gate.py` (POST /agents), then pick
+# it in the `gate` param below.
+#
+# Language reference: https://github.com/sandbox-quantum/switch/blob/main/docs/TEMPLATES.md
+version: 1
+
+params:
+  team:
+    type: string
+    label: Drill name
+    description: Prefix for the agents and the room this creates
+    default: firedrill
+    pattern: "[a-z][a-z0-9-]*"
+  incident:
+    type: enum
+    label: Incident to drill
+    description: Which pre-seeded incident in incident-lab the room opens on
+    enum: [idempotency-race, ratelimit-boundary, path-traversal]
+    default: idempotency-race
+  gate:
+    type: agent
+    label: Gate agent
+    description: The registered firedrill-gate custom agent (see scripts/register_gate.py)
+    default: [firedrill-gate, $first]
+  lab_repo:
+    type: string
+    label: incident-lab repository
+    description: Git URL the fixer and breaker clone into their own directories
+    default: https://github.com/OWNER/firedrill-incident-lab
+  evidence_remote:
+    type: string
+    label: Evidence remote
+    description: Bare git repo the fixer and breaker push to and the gate fetches from (created by scripts/bootstrap_evidence.sh)
+    default: /tmp/firedrill/evidence.git
+    input: advanced
+  location:
+    type: location
+    description: The machine both coding agents run on
+    default: local
+    input: advanced
+  directory:
+    type: directory
+    description: Each agent's working directory, a folder of its own
+    default: "{$agents_dir}/{agent}"
+    input: advanced
+  bridge:
+    type: bridge
+    description: Where the room is mirrored
+    default: [Mattermost, $first]
+
+agents:
+  - name: "{team}-fixer"
+    display_name: FireDrill Fixer
+    description: Diagnoses the incident and writes the smallest correct hotfix
+    provider: claude
+    location: "{location}"
+    directory: "{directory}"
+    repo: "{lab_repo}"
+    addressing: owner-agents
+    instructions: |
+      You are the fixer in a FireDrill room. Work only in your own directory.
+
+      1. Read the room instructions and the incident brief for {incident}.
+      2. Reproduce the incident with the repro in incident-lab before you
+         change anything. Paste the exact command and output.
+      3. Write the smallest hotfix. Commit it on branch fix/{incident} and
+         push it to the evidence remote named in the room instructions.
+      4. Address @{gate} with: "SUBMIT fix/{incident} <commit sha>".
+      5. If the gate posts a RED verdict, read the failing attack, fix the
+         root cause (not the test), and submit again.
+
+      Never edit files under attacks/. Never claim a test passed that you
+      did not run. You cannot merge; only the gate can.
+  - name: "{team}-breaker"
+    display_name: FireDrill Breaker
+    description: Attacks the fixer's patch with hostile reproduction tests
+    provider: codex
+    location: "{location}"
+    directory: "{directory}"
+    repo: "{lab_repo}"
+    addressing: owner-agents
+    instructions: |
+      You are the red team in a FireDrill room. Work only in your own
+      directory. Your job is to prove the fixer's patch is wrong.
+
+      When the fixer announces a submission, fetch fix/{incident} from the
+      evidence remote and write hostile tests under attacks/{incident}/:
+      concurrency, boundary values, encodings, replays, whatever the bug
+      class invites. Run them against the patch yourself first.
+
+      Commit them on branch attack/{incident}, push to the evidence remote,
+      and address @{gate} with: "ATTACK attack/{incident} <commit sha>".
+
+      A test that fails on correct code is worthless: every attack must
+      pass against incident-lab's reference fix, and the gate will reject
+      attacks that do not. Never post a result you did not run.
+
+room:
+  name: "{team}-{incident}"
+  description: Fixer patches, breaker attacks, the gate verifies, a human signs off
+  bridge: "{bridge}"
+  channel_type: channel_private
+  agents: ["{team}-fixer", "{team}-breaker", "{gate}"]
+  users: ["{$creator}"]
+  roles:
+    - name: patch-author
+      exclusive: true
+      instructions: |
+        You own the hotfix branch for this incident. Only the holder pushes
+        fix/ branches.
+    - name: red-team
+      exclusive: true
+      instructions: |
+        You own the attack branch for this incident. Only the holder pushes
+        attack/ branches.
+  instructions: |
+    FireDrill rules for incident {incident}. These bind every participant.
+
+    R0. The evidence remote is {evidence_remote}. Fixes go on fix/{incident},
+        attacks on attack/{incident}. Push nothing else there.
+    R1. Nothing merges to main except through {gate}. Agents hold no write
+        credential for main; the gate does.
+    R2. A verdict is GREEN only when, in a clean container, all of these
+        pass against the submitted fix: the original repro, every attack
+        on the latest attack/ branch, and the incident's invariant check.
+    R3. An attack counts only if it also passes against the reference fix.
+        Attacks that fail on correct code are thrown out and named.
+    R4. After GREEN, the gate asks for sign-off. Only a message from
+        {$creator} that reads exactly "APPROVE <verdict id>" in the verdict
+        thread merges. Anything else is discussion.
+    R5. The gate's room document "firedrill-verdicts" is the decision log.
+        Only the gate can edit it. Every verdict, attack, rejection and
+        sign-off is appended there with commit shas.
+    R6. Say what you are about to run before a slow step. Never report a
+        result you did not run.
+
+kickoff: |
+  @{team}-fixer @{team}-breaker @{gate}: incident {incident} is live.
+  @{gate}: open the docket and post the incident brief.
+  @{team}-fixer: reproduce it and submit a hotfix.
+  @{team}-breaker: stand by for the fixer's submission, then break it.
