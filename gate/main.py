@@ -16,6 +16,7 @@ import logging
 import signal
 import sys
 
+from gate import telemetry
 from gate.config import Config
 from gate.courtroom import Courtroom
 from gate.identity import IdentityBook
@@ -69,6 +70,7 @@ async def preflight(client: SwitchClient, cfg: Config, *, strict: bool) -> dict:
 async def run(cfg: Config) -> None:
     client, _court = build(cfg)
     log.info("preflight: %s", json.dumps(await preflight(client, cfg, strict=True)))
+    await telemetry.start()  # dashboard feed on :8787; if it can't bind, the gate runs on without it
     stop = asyncio.Event()
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
@@ -77,6 +79,7 @@ async def run(cfg: Config) -> None:
     stopper = asyncio.create_task(stop.wait())
     done, _ = await asyncio.wait({runner, stopper}, return_when=asyncio.FIRST_COMPLETED)
     await client.stop()
+    await telemetry.stop()
     for t in done:
         if t is runner and t.exception():
             raise t.exception()  # type: ignore[misc]

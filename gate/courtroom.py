@@ -187,6 +187,8 @@ class Courtroom:
                     await self.client.op("post_message", body=body)  # thread id not accepted: post top-level
                 else:
                     raise
+        # The gate never hears its own posts (handle() skips them), so mirror them here.
+        await self.telemetry("room_message", case.room_id, None, self._gate_actor(), {"body": body, "thread_id": thread_id, "addressed": False})
 
     async def reject(self, case: Case, sender: Sender, reason: str, thread: str | None) -> None:
         await self.telemetry("rejected", case.room_id, None, self._actor(sender), {"reason": reason})
@@ -232,7 +234,7 @@ class Courtroom:
             + (f"{brief}\n\n" if brief else "")
             + commands.USAGE,
         )
-        await self.telemetry("gate_state", case.room_id, None, self._gate_actor(), {"state": "docket_open", "incident": case.incident})
+        await self.telemetry("gate_state", case.room_id, None, self._gate_actor(), {"state": "docket_open", "incident": case.incident, "room_name": case.room_name, "brief": brief, "approvers": list(self.cfg.approvers)})
 
     async def write_docs(self, case: Case) -> None:
         async with self.client.room():
@@ -277,7 +279,7 @@ class Courtroom:
         entry = {"branch": co.branch, "sha": co.sha, "by": sender.name, "manual": sender.role == APPROVER, "at": now(), "path": str(co.path)}
         case.fixes.append(entry)
         self.save(case)
-        await self.telemetry("submission", case.room_id, None, self._actor(sender), _public(entry))
+        await self.telemetry("submission", case.room_id, None, self._actor(sender), {**_public(entry), "diff_stat": await self._diff_stat(case, co.sha)})
         await self.post(case, f"Fix `{co.sha[:12]}` on `{co.branch}` received. Verifying in a clean container…", thread)
         await self.run_verdict(case, thread)
 
@@ -296,7 +298,7 @@ class Courtroom:
         entry = {"branch": co.branch, "sha": co.sha, "by": sender.name, "manual": sender.role == APPROVER, "at": now(), "path": str(co.path)}
         case.attacks.append(entry)
         self.save(case)
-        await self.telemetry("attack", case.room_id, None, self._actor(sender), _public(entry))
+        await self.telemetry("attack", case.room_id, None, self._actor(sender), {**_public(entry), "diff_stat": await self._diff_stat(case, co.sha)})
         if case.latest_fix is None:
             await self.post(case, f"Attack `{co.sha[:12]}` recorded. It runs as soon as a fix is submitted.", thread)
             await self.write_docs(case)
@@ -398,6 +400,14 @@ class Courtroom:
         await self.telemetry("merge", case.room_id, None, self._gate_actor(), merge)
         await self.write_docs(case)
         await self.post(case, f"MERGED. `{latest['verdict_id']}` signed off by {sender.name}. main is now `{merged[:12]}`.", thread)
+
+    async def _diff_stat(self, case: Case, sha: str) -> dict[str, Any] | None:
+        """Files/lines a submission changes against main, for the dashboard. Best effort."""
+        try:
+            return await self.merger.diff_stat(case.room_id, sha)
+        except MergeError as e:
+            log.info("no diff stat for %s: %s", sha[:12], e)
+            return None
 
     # ── text ──────────────────────────────────────────────────────────────
     def status_text(self, case: Case) -> str:

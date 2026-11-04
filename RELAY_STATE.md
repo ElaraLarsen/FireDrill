@@ -1,7 +1,7 @@
 # RELAY_STATE — FireDrill live ledger
 
 ## Last Active Agent
-**Claude-1 (Switch layer)**: 2026-11-04 ~10:15 IST
+**Presentation lane (Teammate 2)**: 2026-11-04 ~11:00 IST. Before that: Switch layer, 2026-11-04 ~10:15 IST.
 
 ## Winning Project
 **FireDrill: an adversarial hotfix courtroom in chat.**
@@ -34,10 +34,34 @@ Hook: Switch's own incident-response docs admit human approval is "instructions 
 - [x] CLAUDE.md / AGENTS.md / RELAY_STATE.md / ARCHITECTURE.md written.
 - [x] **Claude-1 Phase 2 lane built and unit-tested** (see below). Not yet run against a live Switch server.
 - [ ] Codex lane (incident-lab, verify)
-- [ ] Claude-2 lane (telemetry, dashboard)
+- [x] Presentation lane built and tested (telemetry, dashboard, compose, README, demo script, blog). Compose unrun (no Docker daemon); no live Switch yet.
 - [ ] First live end-to-end drill
 
-## Completed in This Turn (Claude-1)
+## Completed in This Turn (presentation lane)
+Files:
+- `gate/telemetry.py`: `async publish(kind, room_id, seq, actor, data)` (stamps `ts`, appends `gate/state/<room>.jsonl`, fans out to WS clients; unknown kinds refused). FastAPI app: `WS /telemetry[?room=<id>|all]` (replays the newest room's JSONL, then live), `GET /health`, `GET /api/incidents`, `POST /api/replay/{incident}` (returns recorded frames; never re-broadcasts). `start()`/`stop()` embed it in the gate process on `FIREDRILL_TELEMETRY_HOST:PORT` (default 127.0.0.1:8787) without taking over signal handlers; a bind failure is logged and the gate runs on.
+- `dashboard/` (React + Vite + TS + Tailwind 4): four locked panels, Judge Replay stepper, live WS client with reset-on-reconnect, reducer in `src/model.ts`, vitest in `src/model.test.ts`, `dashboard/fixtures/idempotency-race.{jsonl,meta.json}`, `Dockerfile`.
+- `docker-compose.firedrill.yml`, `Dockerfile.gate`, `README.md`, `docs/demo-script.md`, `docs/blog.md`, `docs/dashboard.jpg`.
+- `tests/test_telemetry.py` (5), `tests/test_telemetry_fixture.py` (2). Re-record the fixture: `FIREDRILL_RECORD_FIXTURE=1 python3 -m pytest tests/test_telemetry_fixture.py`.
+- Edits in Switch-layer files (see D13-D15): `gate/courtroom.py`, `gate/merger.py`, `gate/main.py`, `gate/requirements.txt`, `tests/conftest.py`.
+
+Verification (run here, real output):
+```
+$ python3 -m pytest -q                      # /usr/bin/python3 3.9.6; see environment note
+........................                                                 [100%]
+24 passed in 18.06s
+$ cd dashboard && npm run build
+> tsc -b && vite build
+✓ built in 55ms
+$ cd dashboard && npx vitest run
+ Test Files  1 passed (1)   Tests  4 passed (4)
+```
+- Browser check (Vite dev + Browser pane): Replay Recorded Drill stepped through V-001 GREEN (repro only) -> V-002 RED -> V-003 GREEN -> sign-off -> MERGED. Live mode connected to a real `gate.telemetry` server serving a copy of the fixture JSONL and rebuilt the case from history (that server was a throwaway; stopped).
+- Environment note: PyPI was unreachable from this machine, so `pytest-asyncio` couldn't be installed. The async tests were run with a small throwaway shim plugin that runs coroutine tests via `asyncio.run` (not committed). On a normal machine, `pip install -r requirements-dev.txt` and plain `pytest` is the real run; please confirm.
+
+What is NOT verified: the gate with telemetry against a live Switch server; `docker compose up` (no daemon here; `docker compose config` is clean); `npm ci` from the committed lockfile inside the dashboard image; Python 3.12 (ran on 3.9.6).
+
+## Previous turn (Claude-1)
 Files:
 - `gate/switch_client.py`: WS connect (`/agents/{id}/connection/ws`, scope=all, filter=all), persistent connection id, `connection_state`, ping→pong `{"type":"pong","cursor":n}`, resume via `start_from`, `refused`/`evicted taken_over` are fatal, `GET /ops` discovery + schema check, `op()`, `use_room()`.
 - `gate/courtroom.py`: SUBMIT/ATTACK/APPROVE/STATUS, verdict numbering, calls `gate.verify` CLI, gate-owned room docs `firedrill-docket` + `firedrill-verdicts`, telemetry adapter onto `gate.telemetry.publish`.
@@ -62,7 +86,7 @@ Bugs the tests caught and fixed:
 3. A naive fix is GREEN before any attack, so a human could approve it unattacked. New rule: **no attack, no sign-off.**
 
 ## Current System State
-- Nothing running. No live Switch server has been reached yet: this workspace's network blocks `ghcr.io`, so the Switch images can't be pulled here.
+- Nothing running (the dev servers used for checking were stopped). No live Switch server has been reached yet: this workspace's network blocks `ghcr.io`, so the Switch images can't be pulled here.
 - GitHub repo: being created as `ElaraLarsen/firedrill` (public). All commits are authored as ElaraLarsen.
 - Pinned `SWITCH_VERSION=0.31.0` (latest stable tag `switch-v0.31.0`).
 - Open unknowns (close with `python -m gate.main --probe` on a live server; paste the output here):
@@ -84,6 +108,9 @@ Bugs the tests caught and fixed:
 - D10: Approvers may also SUBMIT/ATTACK (flagged `manual`). That's what makes scripted replay possible without pretending to be the agents.
 - D11: The gate assigns `verdict_id` and fills `fix`/`attack`/`incident`; verify needn't.
 - D12: Commits are authored by the human team only (no AI co-author trailers), per the team lead.
+- D13 (2026-11-04, presentation lane): `gate/main.py::run()` starts the telemetry server (`await telemetry.start()` after preflight, `await telemetry.stop()` on shutdown). Same process as the gate, as the handoff suggested. `fastapi` and `uvicorn` added to `gate/requirements.txt`.
+- D14: `gate/courtroom.py` now (a) mirrors the gate's own posts as `room_message` frames (it skips its own echoes, so the dashboard would otherwise never show gate replies), (b) adds `room_name`, `brief`, `approvers` to the `gate_state docket_open` frame, (c) adds `diff_stat` to `submission`/`attack` frames via new `Merger.diff_stat()` (`git diff --numstat origin/main...<sha>`). All additive; the §4.3 envelope and kinds are unchanged.
+- D15: `tests/conftest.py` gains an autouse fixture pointing `FIREDRILL_STATE_DIR` at a tmp dir, so telemetry JSONL from tests never lands in `gate/state/`.
 
 ## Next Handoff Queue
 
@@ -102,7 +129,8 @@ Bugs the tests caught and fixed:
 4. The lab repo's root is the contents of `incident-lab/` (so `incidents/<id>/brief.md` sits at the root). The gate reads the brief from there.
 5. `tests/test_verify_matrix.py` (buggy RED, naive GREEN, naive+attack RED, reference+attack GREEN). Paste the real output here. `tests/fake_verify.py` is Claude-1's test stand-in: don't extend it, replace its use when you're ready.
 
-### Claude-2: presentation layer (unchanged; see ARCHITECTURE §4.3 and §7)
-1. `gate/telemetry.py` exposing `publish(kind, room_id, seq, actor, data)` (sync or async; the courtroom awaits it if it's a coroutine), plus the WS server on :8787 and JSONL replay. The courtroom already calls it: see `Telemetry` in `gate/courtroom.py` for every `kind` it emits.
-2. Run it in the same process as the gate: start your server from `gate/main.py`'s `run()` via a hook you add (coordinate in the Decisions Log), or in a sibling task. Your call, just log it.
-3. Dashboard, compose, README, demo script and blog as listed in ARCHITECTURE §7–8.
+### Claude-2: presentation layer (built; follow-ups)
+1. Once a live drill exists: `python -m gate.main`, run the template, then record that drill (copy `gate/state/<room>.jsonl` to `dashboard/fixtures/<incident>.jsonl` with a `.meta.json` whose `provenance` says it is live) and replace the stand-in-verifier fixture. Update `tests/test_telemetry_fixture.py` expectations if the frame order differs.
+2. Run `docker compose -f docker-compose.firedrill.yml up --build` on a machine with Docker; fix what breaks. Known risk: verify's sibling containers need checkout paths identical on host and in the gate container.
+3. Re-record the dashboard screenshot (`docs/dashboard.jpg`) from the live drill; capture the other two incidents once Codex's scenarios exist and add fixtures for them (the incident tabs enable themselves when a fixture exists).
+4. Check the `check` frames from Codex's real `gate/verify.py`: the attack matrix shows "Passed against Reference Fix" only if `verify` emits `kind: "attack", against: "reference"` checks. If it doesn't, the matrix falls back to fix-only rows and the discarded list.

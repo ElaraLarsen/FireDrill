@@ -7,3 +7,4 @@ gate/state/
 .venv/
 .switch-stack/
 .pytest_cache/
+*.tsbuildinfo

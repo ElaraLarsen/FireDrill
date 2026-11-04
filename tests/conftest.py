@@ -21,6 +21,14 @@ def git(*args: str, cwd: Path, env: dict[str, str] | None = None, check: bool = 
     )
 
 
+@pytest.fixture(autouse=True)
+def telemetry_state(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Keep gate.telemetry's JSONL out of the repo's gate/state during tests."""
+    d = tmp_path_factory.mktemp("telemetry-state")
+    monkeypatch.setenv("FIREDRILL_STATE_DIR", str(d))
+    return d
+
+
 @pytest.fixture
 def evidence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
     """A real lab repo + evidence remote built by scripts/bootstrap_evidence.sh."""

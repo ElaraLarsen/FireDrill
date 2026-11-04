@@ -1,0 +1,14 @@
+# firedrill-gate: the Switch agent, the verify runner's driver and the telemetry feed (:8787).
+# The verify engine starts sibling containers (`docker run --network none`) through the host
+# Docker socket, so this image carries the docker CLI and git.
+FROM python:3.12-slim
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git docker.io \
+ && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY gate/requirements.txt gate/requirements.txt
+RUN pip install --no-cache-dir -r gate/requirements.txt
+COPY gate gate
+ENV PYTHONUNBUFFERED=1
+EXPOSE 8787
+CMD ["python", "-m", "gate.main"]

@@ -107,6 +107,23 @@ class Merger:
                 await _git("worktree", "add", "-q", "--detach", str(path), head, cwd=clone)
             return Checkout(branch=branch, sha=head, path=path)
 
+    async def diff_stat(self, room_id: str, sha: str) -> dict:
+        """What `sha` changes relative to main: {files, insertions, deletions, names}."""
+        if not SHA_RE.match(sha):
+            raise MergeError(f"'{sha}' is not a commit sha")
+        async with self._lock:
+            clone = self._clone_dir(room_id)
+            out = await _git("diff", "--numstat", f"refs/remotes/origin/main...{sha}", cwd=clone)
+        names: list[str] = []
+        ins = dele = 0
+        for line in out.splitlines():
+            a, _, rest = line.partition("\t")
+            d, _, name = rest.partition("\t")
+            ins += int(a) if a.isdigit() else 0  # "-" for binary files
+            dele += int(d) if d.isdigit() else 0
+            names.append(name)
+        return {"files": len(names), "insertions": ins, "deletions": dele, "names": names[:8]}
+
     async def main_checkout(self, room_id: str) -> Checkout:
         async with self._lock:
             clone = await self._ensure_clone(room_id)

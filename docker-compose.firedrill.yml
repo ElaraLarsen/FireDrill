@@ -1,0 +1,45 @@
+# FireDrill presentation + gate services. Switch itself (Mattermost, Console, API) comes from
+# scripts/bootstrap_stack.sh; this file adds the gate (:8787) and the courtroom dashboard (:5173).
+#
+#   docker compose -f docker-compose.firedrill.yml up -d --build
+#
+# Needs a filled .env (scripts/register_gate.py, scripts/bootstrap_evidence.sh) and a running
+# Docker daemon. Judges without Docker or keys: `cd dashboard && npm ci && npm run dev`, then
+# click "Replay Recorded Drill".
+services:
+  gate:
+    build:
+      context: .
+      dockerfile: Dockerfile.gate
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Inside the container, Switch's API is on the host.
+      SWITCH_URL: ${FIREDRILL_DOCKER_SWITCH_URL:-http://host.docker.internal:8000}
+      FIREDRILL_TELEMETRY_HOST: 0.0.0.0
+      FIREDRILL_STATE_DIR: /app/gate/state
+      FIREDRILL_FIXTURES_DIR: /app/dashboard/fixtures
+    ports:
+      - "8787:8787"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./gate/state:/app/gate/state
+      - ./dashboard/fixtures:/app/dashboard/fixtures:ro
+      - /tmp/firedrill:/tmp/firedrill            # evidence remote + key hash written by bootstrap_evidence.sh
+      - /var/run/docker.sock:/var/run/docker.sock  # verify engine starts clean sibling containers
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8787/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "5173:5173"
+    depends_on:
+      - gate
+    restart: unless-stopped
