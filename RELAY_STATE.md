@@ -1,7 +1,7 @@
 # RELAY_STATE — FireDrill live ledger
 
 ## Last Active Agent
-**Presentation lane (Teammate 2)**: 2026-11-04 ~12:30 IST, phase 5 (dashboard visual polish). Before that: phase 4, ~12:00 IST.
+**Presentation lane (Teammate 2)**: 2026-11-04 ~12:45 IST, phase 5b (gate verdict message fix, user-approved). Before that: phase 5, ~12:30 IST.
 
 ## Winning Project
 **FireDrill: an adversarial hotfix courtroom in chat.**
@@ -37,7 +37,21 @@ Hook: Switch's own incident-response docs admit human approval is "instructions 
 - [x] Presentation lane built and tested (telemetry, dashboard, compose, README, demo script, blog). Compose unrun (no Docker daemon); no live Switch yet.
 - [ ] First live end-to-end drill
 
-## Completed in This Turn (presentation lane, phase 5: dashboard visual polish)
+## Completed in This Turn (presentation lane, phase 5b: verdict message fix)
+User approved this Switch-layer edit in chat.
+- `gate/courtroom.py::render_verdict_message` now counts and lists only checks against the submitted fix. Reference checks validate attacks (Rule R3); an R3-discarded attack still appears as "- discarded attack …". Before: a GREEN post read "6/7 checks passed. - FAIL test_overbroad…"; now "3/3 checks against the fix passed." The `**V-…: RESULT**` headline that `scripts/replay_demo.py` parses is unchanged.
+- `tests/test_verdict_message.py` (2 tests, GREEN and RED); `tests/test_courtroom_recordings.py` also asserts a GREEN post has no "FAIL".
+- Re-recorded `dashboard/fixtures/<incident>.jsonl` + meta for all three incidents (same shape: 48 / 60 / 56 frames, 18 / 30 / 26 checks; new SHAs and timestamps). Retook `docs/dashboard.jpg` (3200x1800). README and blog test counts updated.
+
+Verification (run here, real output; Python 3.12.14):
+```
+$ .venv/bin/python -m pytest -q -p no:cacheprovider
+68 passed, 1 warning in 151.79s (0:02:31)
+$ cd dashboard && npx vitest run   -> Tests 25 passed (25)
+$ cd dashboard && npm run build    -> ✓ built in 61ms
+```
+
+## Previous turn (presentation lane, phase 5: dashboard visual polish)
 UI only. `dashboard/src/model.ts` (reducer) and the fixtures are unchanged (`git diff dashboard/src/model.ts` was empty); no Python file changed. Commit `89adc19`.
 - `dashboard/src/index.css`: new design tokens (surfaces, text, role colours: fixer indigo, breaker emerald, gate amber, approver cyan; RED/GREEN/ERROR), sans UI font + mono data font, motion with `prefers-reduced-motion` respected.
 - `dashboard/src/icons.tsx`: inline SVG icons (no new dependency).
@@ -55,7 +69,7 @@ $ cd dashboard && npm run build    -> ✓ built in 57ms (tsc -b clean)
 - Headless Chrome renders checked at 1920x1080, 2560x1440, 1600x900@2x and a mid-trial frame (`?replay=pagination-cursor&step=27`: PENDING hero, streaming checks, "Red-Team Attack" active). Browser pane at 1600x900: incident pill switches and plays, Pause holds, Step forward advances. At 375px (mobile preset) the page has no horizontal scroll; one matrix cell clips inside its card.
 - pytest not re-run: no Python or fixture changed this turn (last run: 66 passed, phase 4).
 
-Noticed, not fixed (Switch layer, `gate/courtroom.py::render_verdict_message`): the gate's room message counts the R3-discarded attack's reference failure as a failed check, so a GREEN verdict reads "6/7 checks passed. - FAIL test_overbroad…". The dashboard's own panels count only checks against the fix (3/3). Fixing it means re-recording the three fixtures.
+Fixed in phase 5b (see above). Was: the gate's room message counted the R3-discarded attack's reference failure as a failed check, so a GREEN verdict reads "6/7 checks passed. - FAIL test_overbroad…". The dashboard's own panels count only checks against the fix (3/3). Fixing it means re-recording the three fixtures.
 
 ## Previous turn (presentation lane, phase 4)
 The user explicitly authorised edits across lanes for these items (D19).

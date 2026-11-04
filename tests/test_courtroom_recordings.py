@@ -161,6 +161,7 @@ async def test_full_courtroom_drill_with_real_verifier(incident, tmp_path, monke
     good = push(work, f"fix/{incident}", patch=script / "fix.patch")
     await court.handle(say(room, FIXER, f"@firedrill-gate SUBMIT fix/{incident} {good[:10]}"))
     assert f"{vid(3)}: GREEN" in last() and f"APPROVE {vid(3)}" in last()
+    assert "FAIL" not in last(), "a GREEN post must not list the R3-discarded attack as a failed check"
 
     # d) a non-approver cannot sign off
     await court.handle(say(room, GUEST, f"@firedrill-gate APPROVE {vid(3)}"))

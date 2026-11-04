@@ -122,12 +122,12 @@ Replay is stepped in the browser and never sent to the gate. When a gate is runn
 
 ```bash
 pip install -r gate/requirements.txt -r requirements-dev.txt -r incident-lab/requirements.txt
-python -m pytest -q           # 66 tests: courtroom, evidence hook, Switch client, telemetry, verify matrix, full drills
-cd dashboard && npm test      # 15 tests: the reducer replays the three recordings
+python -m pytest -q           # 68 tests: courtroom, evidence hook, Switch client, telemetry, verify matrix, full drills
+cd dashboard && npm test      # 25 tests: the reducer and docket stages replay the three recordings
 cd dashboard && npm run build
 ```
 
-Last run (macOS arm64, Python 3.12.14, real `pytest-asyncio`): `66 passed in 150.91s`; dashboard `15 passed`, build clean. The slow parts are `tests/test_verify_matrix.py` (every matrix cell against real subprocesses) and `tests/test_courtroom_recordings.py` (one full drill per incident).
+Last run (macOS arm64, Python 3.12.14, real `pytest-asyncio`): `68 passed in 151.79s`; dashboard `25 passed`, build clean. The slow parts are `tests/test_verify_matrix.py` (every matrix cell against real subprocesses) and `tests/test_courtroom_recordings.py` (one full drill per incident).
 
 ## Honest limits
 

@@ -103,7 +103,7 @@ What is real: the courtroom code, our verify engine running the repro, invariant
 - **The merge enforcement is a local-demo version.** A git hook and a key is a stand-in for what you'd run in production: a protected branch and a GitHub App held by the gate, with the agents limited to read access.
 - **The recordings are scripted.** The verifier and the merge are real, but the fixer, the breaker and the approver are scripted participants, so they show what the gate does and not that two models can win the drill.
 
-The test suite is 66 Python tests (the courtroom, the evidence hook, the Switch client, telemetry, the verify matrix and the three full drills) and 15 dashboard tests, all passing on Python 3.12.
+The test suite is 68 Python tests (the courtroom, the evidence hook, the Switch client, telemetry, the verify matrix and the three full drills) and 25 dashboard tests, all passing on Python 3.12.
 
 ## Why Switch
 

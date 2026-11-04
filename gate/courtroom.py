@@ -438,10 +438,12 @@ class Courtroom:
 # ── rendering (room docs and messages) ────────────────────────────────────
 def render_verdict_message(v: dict[str, Any], cfg: Config) -> str:
     result = v.get("result", "ERROR")
-    checks = v.get("checks") or []
+    # The result rests on the checks against the submitted fix. Checks against the reference fix only
+    # validate the attacks (Rule R3): a reference failure is a discarded attack, listed below, not a failed check.
+    checks = [c for c in v.get("checks") or [] if c.get("against") != "reference"]
     failed = [c for c in checks if c.get("status") != "pass"]
     lines = [f"**{v['verdict_id']}: {result}**  fix `{v['fix']['sha'][:12]}`" + (f" vs attack `{v['attack']['sha'][:12]}`" if v.get("attack") else "")]
-    lines.append(f"{len(checks) - len(failed)}/{len(checks)} checks passed.")
+    lines.append(f"{len(checks) - len(failed)}/{len(checks)} checks against the fix passed.")
     for c in failed[:5]:
         tail = (c.get("output_tail") or "").strip().splitlines()[-3:]
         lines.append(f"- {c.get('status', '?').upper()} `{c.get('name')}` ({c.get('kind')}, vs {c.get('against')})" + (f"\n  ```\n  {chr(10).join(tail)}\n  ```" if tail else ""))
