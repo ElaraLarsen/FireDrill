@@ -102,6 +102,7 @@ export default function App() {
 
   return (
     <div className="relative min-h-full pb-4 lg:flex lg:h-full lg:flex-col lg:pb-0">
+      <a href="#evidence" className="skip">Skip to the evidence</a>
       <div className="aurora" aria-hidden><i /><i /><i /><i /></div>
 
       <Header
@@ -124,7 +125,7 @@ export default function App() {
       <Journey stages={stages(state)} steps={steps} frames={run?.frames ?? null} step={step} onJump={jump} />
       <Caption line={line} k={`${run?.id}-${step}`} onTap={run && step < total ? () => stepBy(1) : undefined} />
 
-      <main key={run?.id ?? "live"} className="slideup relative z-10 grid gap-4 px-4 pb-4 pt-3 sm:px-6 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1fr)]">
+      <main id="evidence" tabIndex={-1} key={run?.id ?? "live"} className="slideup outline-none relative z-10 grid gap-4 px-4 pb-4 pt-3 sm:px-6 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1fr)]">
         <Room s={state} />
         <CaseFile s={state} />
         <Verdict s={state} />

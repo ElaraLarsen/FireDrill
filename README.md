@@ -86,7 +86,7 @@ cd dashboard && npm ci && npm run dev                           # dashboard on :
 cd dashboard && npm ci && npm run dev          # or: npm run build && npm run preview
 ```
 
-Open <http://localhost:5173> and click **▶ Replay Recorded Drill**. The dashboard steps through a recorded full drill from `dashboard/fixtures/`: play, pause, step either way, scrub, 1×/2×/4×. The incident tabs (`idempotency-race`, `ratelimit-boundary`, `pagination-cursor`) switch recordings. A link like `/?replay=ratelimit-boundary&step=end` opens one paused at a frame.
+Open <http://localhost:5173> and pick an incident card, or press play. The dashboard is a light, colourful console that narrates each step in plain language and steps through a recorded full drill from `dashboard/fixtures/`: play, pause, step either way, 1×/2×, and tap any stage on the journey map or any verdict dot to jump there. The three cards (`idempotency-race`, `ratelimit-boundary`, `pagination-cursor`) switch recordings. A link like `/?replay=ratelimit-boundary&step=end` opens one paused at a frame.
 
 **Hosted demo.** `dashboard/` deploys as a static site with no backend. `dashboard/vercel.json` is set up for Vercel (import the repo, root directory `dashboard`), and `dist/` uses relative asset paths so it also works on Netlify or GitHub Pages. On a hosted copy the dashboard is replay-only and says "static demo · replay only"; it only looks for a gate on `localhost` unless `VITE_TELEMETRY_URL` is set at build time.
 
@@ -123,7 +123,7 @@ Replay is stepped in the browser and never sent to the gate. When a gate is runn
 ```bash
 pip install -r gate/requirements.txt -r requirements-dev.txt -r incident-lab/requirements.txt
 python -m pytest -q           # 68 tests: courtroom, evidence hook, Switch client, telemetry, verify matrix, full drills
-cd dashboard && npm test      # 25 tests: the reducer and docket stages replay the three recordings
+cd dashboard && npm test      # 34 tests: reducer, journey stages and narration replay the three recordings
 cd dashboard && npm run build
 ```
 
