@@ -14,7 +14,7 @@ export const SEAL: Record<string, { hex: string; word: string; plain: string; ic
   red: { hex: INK.scarlet, word: "RED", plain: "Broken by the red team.", icon: <I.Cross size={42} /> },
   green: { hex: INK.jade, word: "GREEN", plain: "Survived every attack.", icon: <I.Shield size={40} /> },
   merged: { hex: INK.lime, word: "MERGED", plain: "Signed off and merged to main.", icon: <I.Merge size={40} /> },
-  error: { hex: INK.tangerine, word: "ERROR", plain: "The gate hit a problem. Nothing merges.", icon: <I.Info size={40} /> },
+  error: { hex: INK.rose, word: "ERROR", plain: "The gate hit a problem. Nothing merges.", icon: <I.Info size={40} /> },
 };
 
 export function sealKey(s: State): string {
@@ -108,7 +108,7 @@ function CheckRow({ c, max, index }: { c: Check; max: number; index: number }) {
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
             <span className="truncate font-mono text-[14.5px] font-bold text-on" title={c.name}>{testName(c.name)}</span>
-            {c.kind === "attack" && <span className="shrink-0 bg-tangerine px-2 py-0.5 text-[12px] font-semibold text-forest">attack</span>}
+            {c.kind === "attack" && <span className="shrink-0 bg-rose px-2 py-0.5 text-[12px] font-semibold text-forest">attack</span>}
           </span>
           <span className="mt-1.5 block h-2 overflow-hidden bg-p3">
             <motion.span initial={{ width: 0 }} animate={{ width: `${w}%` }} transition={{ duration: 0.7, delay: 0.15 + index * 0.05, ease: "easeOut" }} className={`block h-full ${ok ? "bg-jade" : "bg-scarlet"}`} />

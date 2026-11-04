@@ -1,7 +1,7 @@
 # RELAY_STATE — FireDrill live ledger
 
 ## Last Active Agent
-**Presentation lane (Teammate 2)**: 2026-11-04 ~16:25 IST: mixed palette (lime, tangerine, sky and lilac on cream and forest) replaces the all-green look, plus a fix for a step ping-pong that fired repeated confetti. Fonts and the page-per-step flow unchanged. Local branch `ui/deep-courtroom-pages`, uncommitted and unpushed by request. Before that: presentation lane 16:15 IST (green), 16:10 IST (sunset), 16:00 IST (riso), 15:30 IST (night court), 14:45 IST (bright UI, D22), Codex 13:15 IST.
+**Presentation lane (Teammate 2)**: 2026-11-04 ~16:45 IST: the video-style player is replaced by a terminal console with a real command prompt; attack colour changed from orange to rose; pushed to main.
 
 ## Winning Project
 **FireDrill: an adversarial hotfix courtroom in chat.**
@@ -37,7 +37,13 @@ Hook: Switch's own incident-response docs admit human approval is "instructions 
 - [x] Presentation lane built and tested (telemetry, dashboard, compose, README, demo script, blog). Compose unrun (no Docker daemon); no live Switch yet.
 - [ ] First live end-to-end drill
 
-## Completed in This Turn (presentation lane, phase 11: mixed palette — LOCAL ONLY)
+## Completed in This Turn (presentation lane, phase 12: console replaces the player — pushed to main)
+- User request: make the bottom bar minimal and not video-like (no play/pause, slider or Space), an actual demonstration with a command prompt in the same theme and fonts. Orange removed.
+- Files touched (dashboard lane only): `dashboard/src/console.ts` (new: transcript lines from frames, command parser, completion, status), `dashboard/src/console.test.ts` (new, 10 tests incl. one transcript line per fixture frame), `dashboard/src/ui/Console.tsx` (new), `dashboard/src/ui/Shell.tsx` (Dock and Narrator removed), `dashboard/src/App.tsx` (commands, run-until-key, no auto-play on open, no Space), `dashboard/src/index.css` (`.term`, `.row-in`; scrubber CSS removed), `dashboard/src/story.ts` (first line text), `dashboard/src/fx.ts` + `ui/*.tsx` + `DESIGN.md` (tangerine renamed rose `#FF8FB1`), `README.md` (replay paragraph), `docs/dashboard.jpg` (retaken, 3200x1800 headless Chrome).
+- Every transcript line is printed from one recorded frame; nothing is invented. Labelled "scripted cast" for recorded drills. `src/model.ts` untouched.
+- Verification: `npx tsc -b` clean; `npx vitest run` 55 passed (6 files); `npm run build` ok. Driven in the browser pane through the prompt: help, next 14, status, bogus, back 4, run (stops on any key), goto attack, reset, case pagination-cursor, case nope, home all behave. Not run: backend/pytest (no backend files touched), Windows, touch device, a hosted deploy.
+
+## Previous turn (presentation lane, phase 11: mixed palette — LOCAL ONLY)
 The user liked the green look but found it "green, green, green" and asked for mixed colours. I kept cream and forest as the ground and gave each of four hues one meaning:
 - lime #C6F432: the fixer;
 - tangerine #FF8A3D: the attack;
@@ -354,6 +360,7 @@ Bugs the tests caught and fixed:
   4. Whether the seeded Mattermost `user` is the `{$creator}` when the template is run from Console. `replay_demo.py` assumes it can see the channel.
 
 ## Decisions Log
+- D23 (2026-11-04, presentation lane; user-requested): the bottom player is now a terminal console (`Console.tsx`). Opening a case no longer auto-plays; Space no longer toggles playback. The attack hue is rose, not orange. `model.ts`, fixtures and the gate are unchanged.
 - D22 (2026-11-04, presentation lane; user-requested): the bright UI replaces the obsidian one on main. Codex's D21 files that only served the old UI were removed; its fonts, favicon and Inter exception were kept. To go back: `git revert` the merge commit.
 - D21 (2026-11-04, Codex; explicit user request): Codex owns this dashboard-only visual overhaul in the presentation lane. Allowed edits: dashboard/, docs/dashboard.jpg, RELAY_STATE.md. Preserve model.ts, existing tests and fixtures; no backend inspection or execution. Commit and push main when verified.
 - D16 (2026-11-04, Codex; explicit Lane 2 handoff): third incident is `pagination-cursor`, superseding §6's `path-traversal`. Verify uses fresh local subprocess workspaces (`python -m pytest`), not Docker; runner metadata says network is inherited, not isolated. Claude-1 must update configured incident names and container wording in their lane.

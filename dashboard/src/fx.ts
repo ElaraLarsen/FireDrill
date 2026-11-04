@@ -23,8 +23,8 @@ export function installTapFeedback(): () => void {
   return () => document.removeEventListener("pointerdown", onDown);
 }
 
-// The whole palette: lime, tangerine, sky, lilac, cream, jade and forest.
-const COLORS = ["#c6f432", "#ff8a3d", "#8fcbf2", "#c4b3f6", "#f3eedf", "#1fa463", "#0f2a1d"];
+// The whole palette: lime, rose, sky, lilac, cream, jade and forest.
+const COLORS = ["#c6f432", "#ff8fb1", "#8fcbf2", "#c4b3f6", "#f3eedf", "#1fa463", "#0f2a1d"];
 
 /** A short burst of confetti from the top of the screen. */
 export function confetti(pieces = 90): void {

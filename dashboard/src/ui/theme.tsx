@@ -10,11 +10,11 @@ export type Role = "fixer" | "breaker" | "gate" | "approver" | "human";
 
 /**
  * The palette: cream paper and deep forest as the ground, then four hues that each mean one thing:
- * lime the fixer, tangerine the attack, sky the gate, lilac the human. Jade is a pass, scarlet a fail.
+ * lime the fixer, rose the attack, sky the gate, lilac the human. Jade is a pass, scarlet a fail.
  */
 export const INK = {
   forest: "#0f2a1d", pine: "#2f5d3f", moss: "#7fb77e", sage: "#a9c5a0", cream: "#f3eedf", lime: "#c6f432",
-  tangerine: "#ff8a3d", sky: "#8fcbf2", lilac: "#c4b3f6",
+  rose: "#ff8fb1", sky: "#8fcbf2", lilac: "#c4b3f6",
   jade: "#1fa463", scarlet: "#e5383b", stone: "#b9c4b0",
 } as const;
 
@@ -22,14 +22,14 @@ export const INK = {
 export const PAGE_INK: Record<Page, { board: string; on: string }> = {
   case: { board: INK.cream, on: INK.forest },
   room: { board: INK.sky, on: INK.forest },
-  attack: { board: INK.tangerine, on: INK.forest },
+  attack: { board: INK.rose, on: INK.forest },
   ruling: { board: INK.forest, on: INK.cream },
   signoff: { board: INK.lilac, on: INK.forest },
 };
 
 export const ROLE: Record<Role, { name: string; who: string; does: string; tag: string; hex: string; icon: (s?: number) => ReactNode }> = {
   fixer: { name: "Fixer", who: "Claude agent", does: "Writes the patch that fixes the bug.", tag: "FIXER", hex: INK.lime, icon: (s = 16) => <I.Wrench size={s} /> },
-  breaker: { name: "Breaker", who: "Codex agent", does: "Writes hostile tests to break the patch.", tag: "BREAKER", hex: INK.tangerine, icon: (s = 16) => <I.Zap size={s} /> },
+  breaker: { name: "Breaker", who: "Codex agent", does: "Writes hostile tests to break the patch.", tag: "BREAKER", hex: INK.rose, icon: (s = 16) => <I.Zap size={s} /> },
   gate: { name: "Gate", who: "The referee", does: "Runs every test for real. Holds the only key to main.", tag: "GATE", hex: INK.sky, icon: (s = 16) => <I.Gavel size={s} /> },
   approver: { name: "Approver", who: "A named human", does: "Signs off, but only after the patch survives an attack.", tag: "APPROVER", hex: INK.lilac, icon: (s = 16) => <I.Key size={s} /> },
   human: { name: "Guest", who: "Anyone else", does: "Can talk, but can't sign off.", tag: "GUEST", hex: INK.stone, icon: (s = 16) => <I.User size={s} /> },
@@ -52,7 +52,7 @@ export const INCIDENT_ICON: Record<string, (s?: number) => ReactNode> = {
   "pagination-cursor": (s = 22) => <I.Pages size={s} />,
 };
 export const INCIDENT_HEX: Record<string, string> = {
-  "idempotency-race": INK.tangerine,
+  "idempotency-race": INK.rose,
   "ratelimit-boundary": INK.sky,
   "pagination-cursor": INK.lilac,
 };

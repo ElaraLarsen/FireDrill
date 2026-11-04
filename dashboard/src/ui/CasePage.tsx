@@ -9,7 +9,7 @@ import { Avatar, Empty, INCIDENT_PLAIN, INK, Inline, PageTitle, Panel, ROLE, typ
 const CAST: Role[] = ["fixer", "breaker", "gate", "approver"];
 
 const RULES = [
-  { icon: <I.Zap size={22} />, hex: INK.tangerine, title: "No attack, no sign-off", text: "A patch that only passes its own bug test isn't trusted yet." },
+  { icon: <I.Zap size={22} />, hex: INK.rose, title: "No attack, no sign-off", text: "A patch that only passes its own bug test isn't trusted yet." },
   { icon: <I.Hand size={22} />, hex: INK.sky, title: "Fair tests only", text: "An attack must pass on the gate's own correct fix, or it's thrown out." },
   { icon: <I.Key size={22} />, hex: INK.lilac, title: "One key to main", text: "Only the gate can merge, and only after a named human signs." },
 ];

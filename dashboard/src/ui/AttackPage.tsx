@@ -73,7 +73,7 @@ export function AttackPage({ s }: { s: State }) {
       <PageTitle
         title="The red team attacks"
         lead="The breaker writes hostile tests aimed straight at the patch. If any fair test breaks it, the patch goes back to the fixer."
-        right={atk ? <span className="inline-flex h-10 items-center gap-2 rounded-full bg-forest px-4 font-mono text-[13px] text-tangerine"><I.Branch size={14} />{atk.branch} · {short(atk.sha)}</span> : undefined}
+        right={atk ? <span className="inline-flex h-10 items-center gap-2 rounded-full bg-forest px-4 font-mono text-[13px] text-rose"><I.Branch size={14} />{atk.branch} · {short(atk.sha)}</span> : undefined}
       />
 
       {rows.length > 0 && shown && (
