@@ -1,0 +1,28 @@
+--- a/app/pagination.py
++++ b/app/pagination.py
+@@ -1,4 +1,4 @@
+-"""Timestamp-only pagination deliberately repeats tied boundary rows."""
++"""Scripted correct hotfix: keyset traversal with a unique tie breaker."""
+ import base64
+ import json
+ from pathlib import Path
+@@ -34,12 +34,12 @@
+                 ])
+ 
+     def page(self, cursor: str | None, limit: int) -> dict:
+-        last = decode_cursor(cursor) if cursor else {}
+-        timestamp = last.get("timestamp", "")
+-        if not isinstance(timestamp, str):
+-            raise ValueError("invalid cursor timestamp")
++        position = decode_cursor(cursor) if cursor else {"timestamp": "", "id": -1}
++        stamp, identity = position.get("timestamp"), position.get("id")
++        if not isinstance(stamp, str) or type(identity) is not int:
++            raise ValueError("invalid cursor")
+         with connect(self.path) as db:
+-            rows = db.execute("SELECT * FROM items WHERE created_at >= ? ORDER BY created_at, id LIMIT ?", (timestamp, limit)).fetchall()
++            rows = db.execute("SELECT id, created_at, name FROM items WHERE created_at > ? OR (created_at = ? AND id > ?) ORDER BY created_at, id LIMIT ?", (stamp, stamp, identity, limit)).fetchall()
+         items = [dict(row) for row in rows]
+-        next_cursor = encode_cursor({"timestamp": items[-1]["created_at"]}) if items else None
+-        return {"items": items, "next_cursor": next_cursor}
++        tail = items[-1] if items else None
++        return {"items": items, "next_cursor": encode_cursor({"timestamp": tail["created_at"], "id": tail["id"]}) if tail else None}

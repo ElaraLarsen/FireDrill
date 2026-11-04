@@ -1,0 +1,6 @@
+{
+  "title": "Scripted local matrix: idempotency-race",
+  "incident": "idempotency-race",
+  "scripted": true,
+  "provenance": "Real Python 3.12 local subprocess verification: baseline RED, naive GREEN, attacked naive RED, attacked reference GREEN. Gate actions only; no Switch room, human signoff or merge was recorded."
+}

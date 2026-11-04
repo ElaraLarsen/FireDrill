@@ -1,0 +1,6 @@
+{
+  "title": "Scripted local matrix: ratelimit-boundary",
+  "incident": "ratelimit-boundary",
+  "scripted": true,
+  "provenance": "Real Python 3.12 local subprocess verification: baseline RED, naive GREEN, attacked naive RED, attacked reference GREEN. Gate actions only; no Switch room, human signoff or merge was recorded."
+}

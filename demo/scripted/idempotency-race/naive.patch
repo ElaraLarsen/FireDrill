@@ -1,0 +1,25 @@
+--- a/app/payments.py
++++ b/app/payments.py
+@@ -1,4 +1,5 @@
+ """Charge persistence; the baseline intentionally has a check/insert race."""
++import threading
+ from pathlib import Path
+ from typing import Callable
+ from app.db import connect
+@@ -7,11 +8,16 @@
+ class ChargeStore:
+     def __init__(self, path: str | Path, before_insert: Callable[[], None] | None = None):
+         self.path = path
++        self._lock = threading.Lock()
+         self.before_insert = before_insert or (lambda: None)
+         with connect(path) as db:
+             db.execute("CREATE TABLE IF NOT EXISTS charges (id INTEGER PRIMARY KEY, idempotency_key TEXT NOT NULL, amount INTEGER NOT NULL)")
+ 
+     def charge(self, key: str, amount: int) -> dict:
++        with self._lock:
++            return self._charge(key, amount)
++
++    def _charge(self, key: str, amount: int) -> dict:
+         with connect(self.path) as db:
+             row = db.execute("SELECT * FROM charges WHERE idempotency_key = ?", (key,)).fetchone()
+         if row is not None:

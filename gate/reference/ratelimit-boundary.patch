@@ -1,0 +1,31 @@
+--- a/app/limiter.py
++++ b/app/limiter.py
+@@ -1,4 +1,4 @@
+-"""Deliberately vulnerable fixed-window limiter backed by SQLite."""
++"""Atomic rolling-window admission log shared by all SQLite workers."""
+ from pathlib import Path
+ from typing import Callable
+ from app.db import connect
+@@ -8,15 +8,16 @@
+     def __init__(self, path: str | Path, clock: Callable[[], float], limit: int = 3, window: float = 10):
+         self.path, self.clock, self.limit, self.window = path, clock, limit, window
+         with connect(path) as db:
+-            db.execute("CREATE TABLE IF NOT EXISTS rate_windows (client TEXT PRIMARY KEY, bucket INTEGER NOT NULL, count INTEGER NOT NULL)")
++            db.execute("CREATE TABLE IF NOT EXISTS rate_events (id INTEGER PRIMARY KEY, client TEXT NOT NULL, accepted_at REAL NOT NULL)")
++            db.execute("CREATE INDEX IF NOT EXISTS rate_events_client_time ON rate_events(client, accepted_at)")
+ 
+     def allow(self, client: str) -> bool:
+-        bucket = int(self.clock() // self.window)
++        now = self.clock()
+         with connect(self.path) as db:
+             db.execute("BEGIN IMMEDIATE")
+-            row = db.execute("SELECT bucket, count FROM rate_windows WHERE client = ?", (client,)).fetchone()
+-            count = row["count"] if row is not None and row["bucket"] == bucket else 0
+-            if count > self.limit:
++            db.execute("DELETE FROM rate_events WHERE client = ? AND accepted_at <= ?", (client, now - self.window))
++            count = db.execute("SELECT COUNT(*) FROM rate_events WHERE client = ?", (client,)).fetchone()[0]
++            if count >= self.limit:
+                 return False
+-            db.execute("INSERT INTO rate_windows VALUES (?, ?, ?) ON CONFLICT(client) DO UPDATE SET bucket=excluded.bucket, count=excluded.count", (client, bucket, count + 1))
++            db.execute("INSERT INTO rate_events (client, accepted_at) VALUES (?, ?)", (client, now))
+         return True
