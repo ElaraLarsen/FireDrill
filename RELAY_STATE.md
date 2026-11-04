@@ -1,7 +1,7 @@
 # RELAY_STATE — FireDrill live ledger
 
 ## Last Active Agent
-**Presentation lane (Teammate 2)**: 2026-11-04 ~16:50 IST: neo-brutalist landing page at `#/landing` (hand-drawn SVG courthouse hero, GSAP interactions), pushed to `main` at the user's request. Before that: presentation lane 16:30 IST (mixed palette pushed to `main` as 0aaf3ee), 16:25 IST (mixed palette), 16:15 IST (green), 16:10 IST (sunset), 16:00 IST (riso), 15:30 IST (night court), 14:45 IST (bright UI, D22), Codex 13:15 IST.
+**Presentation lane (Teammate 2)**: 2026-11-04 ~17:00 IST: neo-brutalist landing page at `#/landing` (hand-drawn SVG courthouse hero, GSAP interactions), merged with the console commit e9e49fc and pushed to `main`. Before that: presentation lane 16:45 IST (terminal console replaces the player; attack colour rose), presentation lane 16:30 IST (mixed palette pushed to `main` as 0aaf3ee), 16:25 IST (mixed palette), 16:15 IST (green), 16:10 IST (sunset), 16:00 IST (riso), 15:30 IST (night court), 14:45 IST (bright UI, D22), Codex 13:15 IST.
 
 ## Winning Project
 **FireDrill: an adversarial hotfix courtroom in chat.**
@@ -37,8 +37,9 @@ Hook: Switch's own incident-response docs admit human approval is "instructions 
 - [x] Presentation lane built and tested (telemetry, dashboard, compose, README, demo script, blog). Compose unrun (no Docker daemon); no live Switch yet.
 - [ ] First live end-to-end drill
 
-## Completed in This Turn (presentation lane, phase 12: landing page + GSAP — on main)
+## Completed in This Turn (presentation lane, phase 13: landing page + GSAP — on main)
 - The user asked for the mixed palette on `main`. It was committed on `ui/deep-courtroom-pages` and fast-forwarded to `main`: `834fee0..0aaf3ee main -> main`.
+- While this was in progress a teammate pushed e9e49fc (terminal console; attack hue tangerine renamed rose `#FF8FB1`). Merged it rather than overwriting: conflicts in `App.tsx` (kept both `nextLine` and the landing route), `index.css` (both new blocks; one reduced-motion list) and this file. The landing files were switched from `tangerine` to `rose` to match.
 - The user then asked for a landing page modelled on threeui.com's "Kage" landing: a loader, a layered hero with a giant wordmark behind the foreground, a story band with stats, a pinned card reel, a chapters grid, a big closing word, and a three-column footer. Our data, our palette and fonts, a self-built background, and a neo-brutalist theme. Later they asked for GSAP.
 - **Files:**
   - `dashboard/src/ui/Landing.tsx` (new).
@@ -82,8 +83,18 @@ Browser pane, http://127.0.0.1:5188/#/landing:
   - the band transform keeps `rotate(±2deg)` and adds `skew()`;
   - the footer chars reach rest at the bottom of the page. This took a fix: the end is now `"max"`, because the old end was never reached.
 - **Console:** the only errors were from hot-reload states while editing. A clean reload loads the page fine.
+- **After merging e9e49fc (16:52 IST):**
+  - `npx tsc -b` exits 0, `npx vitest run` gives `Tests 56 passed (56)` (55 + the landing route), and `npm run build` gives `✓ built in 343ms`.
+  - A fix in the same pass: on portrait screens wider than a phone (690×890, 820×1180), the tall hero zoomed in by width and lifted the courthouse into the lead text. `CourtScene.fit()` now widens that world sideways: the extra room goes on the left, and the wordmark stretches. Rechecked at 690×890, 820×1180, 375×812 (no overflow) and 1440×900 (unchanged).
+  - `#/case/idempotency-race/attack?step=end` renders the teammate's console (`.term`, `.term-input`) on the rose board `#ff8fb1`.
 
-## Earlier this session (presentation lane, phase 11: mixed palette — now on main)
+## Earlier turn (presentation lane, phase 12: console replaces the player — pushed to main)
+- User request: make the bottom bar minimal and not video-like (no play/pause, slider or Space), an actual demonstration with a command prompt in the same theme and fonts. Orange removed.
+- Files touched (dashboard lane only): `dashboard/src/console.ts` (new: transcript lines from frames, command parser, completion, status), `dashboard/src/console.test.ts` (new, 10 tests incl. one transcript line per fixture frame), `dashboard/src/ui/Console.tsx` (new), `dashboard/src/ui/Shell.tsx` (Dock and Narrator removed), `dashboard/src/App.tsx` (commands, run-until-key, no auto-play on open, no Space), `dashboard/src/index.css` (`.term`, `.row-in`; scrubber CSS removed), `dashboard/src/story.ts` (first line text), `dashboard/src/fx.ts` + `ui/*.tsx` + `DESIGN.md` (tangerine renamed rose `#FF8FB1`), `README.md` (replay paragraph), `docs/dashboard.jpg` (retaken, 3200x1800 headless Chrome).
+- Every transcript line is printed from one recorded frame; nothing is invented. Labelled "scripted cast" for recorded drills. `src/model.ts` untouched.
+- Verification: `npx tsc -b` clean; `npx vitest run` 55 passed (6 files); `npm run build` ok. Driven in the browser pane through the prompt: help, next 14, status, bogus, back 4, run (stops on any key), goto attack, reset, case pagination-cursor, case nope, home all behave. Not run: backend/pytest (no backend files touched), Windows, touch device, a hosted deploy.
+
+## Earlier turn (presentation lane, phase 11: mixed palette — superseded; tangerine later renamed rose)
 The user liked the green look but found it "green, green, green" and asked for mixed colours. I kept cream and forest as the ground and gave each of four hues one meaning:
 - lime #C6F432: the fixer;
 - tangerine #FF8A3D: the attack;
@@ -400,6 +411,7 @@ Bugs the tests caught and fixed:
   4. Whether the seeded Mattermost `user` is the `{$creator}` when the template is run from Console. `replay_demo.py` assumes it can see the channel.
 
 ## Decisions Log
+- D23 (2026-11-04, presentation lane; user-requested): the bottom player is now a terminal console (`Console.tsx`). Opening a case no longer auto-plays; Space no longer toggles playback. The attack hue is rose, not orange. `model.ts`, fixtures and the gate are unchanged.
 - D22 (2026-11-04, presentation lane; user-requested): the bright UI replaces the obsidian one on main. Codex's D21 files that only served the old UI were removed; its fonts, favicon and Inter exception were kept. To go back: `git revert` the merge commit.
 - D21 (2026-11-04, Codex; explicit user request): Codex owns this dashboard-only visual overhaul in the presentation lane. Allowed edits: dashboard/, docs/dashboard.jpg, RELAY_STATE.md. Preserve model.ts, existing tests and fixtures; no backend inspection or execution. Commit and push main when verified.
 - D16 (2026-11-04, Codex; explicit Lane 2 handoff): third incident is `pagination-cursor`, superseding §6's `path-traversal`. Verify uses fresh local subprocess workspaces (`python -m pytest`), not Docker; runner metadata says network is inherited, not isolated. Claude-1 must update configured incident names and container wording in their lane.

@@ -146,7 +146,7 @@ function Hero({ onWatch, onHow, first }: { onWatch: () => void; onHow: () => voi
       <CourtScene />
       <div data-gsap="hero-copy" className="relative mx-auto w-full max-w-[1440px] px-4 pt-24 sm:px-8">
         <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.6, ease, delay: 0.2 }}>
-          <Tag><span className="h-2.5 w-2.5 rounded-full border-2 border-forest bg-tangerine" />Step 00 · The gate is open</Tag>
+          <Tag><span className="h-2.5 w-2.5 rounded-full border-2 border-forest bg-rose" />Step 00 · The gate is open</Tag>
         </motion.div>
         <Headline as="h1" text="Put the hotfix on trial." duration={1.1} className="mt-4 max-w-[9.5ch] text-[clamp(46px,min(12vw,8.5svh),60px)] sm:text-[clamp(56px,min(9vw,10.5svh),104px)]" />
         <motion.p initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.6, ease, delay: 0.45 }} className="mt-4 max-w-[40ch] text-[16px] font-medium leading-relaxed sm:text-[18px] 2xl:text-[19px]">
@@ -216,7 +216,7 @@ function Story({ rec, onWatch }: { rec: ReturnType<typeof useRecord>; onWatch: (
   const stats = [
     { n: rec.drills, label: "Recorded drills", hex: INK.lime },
     { n: rec.tests, label: "Test runs by the gate", hex: INK.sky },
-    { n: rec.attacks, label: "Attacks filed", hex: INK.tangerine },
+    { n: rec.attacks, label: "Attacks filed", hex: INK.rose },
     { n: rec.merges, label: "Merges to main", hex: INK.lilac },
   ];
   return (
@@ -255,7 +255,7 @@ function Story({ rec, onWatch }: { rec: ReturnType<typeof useRecord>; onWatch: (
   );
 }
 
-/** Two crossing tickers: the rules in serif on lime, the ladder in mono on tangerine. */
+/** Two crossing tickers: the rules in serif on lime, the ladder in mono on rose. */
 function Bands() {
   const row = (items: string[], cls: string) => (
     <div className={`marquee flex w-max ${cls}`}>
@@ -268,7 +268,7 @@ function Bands() {
   );
   return (
     <section aria-label="The rules" className="relative overflow-hidden bg-cream py-16 sm:py-20">
-      <div data-gsap="band" className="relative -mx-[10vw] rotate-[2deg] border-y-[3px] border-forest bg-tangerine py-3 font-mono text-[18px] font-bold uppercase tracking-[0.12em] sm:text-[20px]">
+      <div data-gsap="band" className="relative -mx-[10vw] rotate-[2deg] border-y-[3px] border-forest bg-rose py-3 font-mono text-[18px] font-bold uppercase tracking-[0.12em] sm:text-[20px]">
         {row(LADDER, "rev")}
       </div>
       <div data-gsap="band" className="relative -mx-[10vw] -mt-3 -rotate-[2deg] border-y-[3px] border-forest bg-lime py-4 shadow-[0_8px_0_var(--color-forest)]">

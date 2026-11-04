@@ -1,14 +1,12 @@
-// The frame around every case page: the black bar on top, the ink tab rail, and the player dock.
+// The frame around every case page: the bar on top and the ink tab rail. The console lives in Console.tsx.
 import { AnimatePresence, motion } from "motion/react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { Run } from "../fixtures";
 import * as I from "../icons";
-import { INCIDENTS, type Frame } from "../model";
+import { INCIDENTS } from "../model";
 import { PAGE_META, PAGES, type Page, type PageState } from "../pages";
-import type { Line } from "../story";
 import { INCIDENT_META } from "../views";
-import { Scramble } from "./Scramble";
-import { INCIDENT_ICON, INK, PAGE_INK, TONE } from "./theme";
+import { INCIDENT_ICON, INK, PAGE_INK } from "./theme";
 
 const spring = { type: "spring", stiffness: 520, damping: 34 } as const;
 
@@ -163,131 +161,5 @@ function DrawnCheck() {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="square" aria-hidden>
       <motion.path d="M4.5 12.5l5 5L19.5 7" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.4, ease: "easeOut" }} />
     </svg>
-  );
-}
-
-/** The narrator: one sentence about what just happened, resolving out of noise. */
-export function Narrator({ line, k }: { line: Line; k: string }) {
-  const t = TONE[line.tone];
-  return (
-    <div className="flex min-w-0 items-center gap-4" aria-live="polite">
-      <motion.span
-        key={`i${k}`}
-        initial={{ scale: 0.4, rotate: -45 }}
-        animate={{ scale: 1, rotate: 0 }}
-        transition={{ type: "spring", stiffness: 520, damping: 16 }}
-        className="grid h-12 w-12 shrink-0 place-items-center text-forest"
-        style={{ background: t.hex }}
-      >
-        {t.icon(24)}
-      </motion.span>
-      <span className="min-w-0">
-        <Scramble key={`t${k}`} text={line.title} duration={0.5} className="serif block truncate text-[24px] leading-tight sm:text-[28px]" />
-        <motion.span key={`d${k}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }} className="mt-0.5 block truncate text-[15px] text-on2">
-          {line.detail}
-        </motion.span>
-      </span>
-    </div>
-  );
-}
-
-interface DockProps {
-  line: Line;
-  k: string;
-  frames: Frame[] | null;
-  track: Page[];
-  step: number;
-  playing: boolean;
-  speed: number;
-  onToggle: () => void;
-  onStep: (d: number) => void;
-  onJump: (n: number) => void;
-  onSpeed: (x: number) => void;
-}
-
-/** The player, a black strip across the foot of every case page. */
-export function Dock(p: DockProps) {
-  const total = p.frames?.length ?? 0;
-  const atEnd = p.step >= total;
-  const t = TONE[p.line.tone];
-  // The progress bar is the drill's own page track, printed in each page's ink.
-  const segments = useMemo(() => {
-    const out: { page: Page; from: number; to: number }[] = [];
-    p.track.slice(1).forEach((pg, i) => {
-      const last = out[out.length - 1];
-      if (last && last.page === pg) last.to = i + 1;
-      else out.push({ page: pg, from: i, to: i + 1 });
-    });
-    return out;
-  }, [p.track]);
-  return (
-    <div className="dock fixed inset-x-0 bottom-0 z-30 bg-forest text-on">
-      {p.frames && (
-        <div className="relative h-4 sm:h-5" aria-hidden>
-          {segments.map((s, i) => (
-            <span key={i} className="absolute inset-y-0" style={{ left: `${(s.from / total) * 100}%`, width: `${((s.to - s.from) / total) * 100}%`, background: PAGE_INK[s.page].board === INK.forest ? INK.pine : PAGE_INK[s.page].board, opacity: 0.35 }} />
-          ))}
-          <motion.div className="absolute inset-y-0 left-0 overflow-hidden" animate={{ width: `${total ? (p.step / total) * 100 : 0}%` }} transition={{ type: "spring", stiffness: 260, damping: 32 }}>
-            {segments.map((s, i) => (
-              <span key={i} className="absolute inset-y-0" style={{ left: `${total && p.step ? (s.from / p.step) * 100 : 0}%`, width: `${total && p.step ? ((s.to - s.from) / p.step) * 100 : 0}%`, background: PAGE_INK[s.page].board === INK.forest ? INK.pine : PAGE_INK[s.page].board }} />
-            ))}
-          </motion.div>
-        </div>
-      )}
-      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-8 sm:py-4">
-        <div className="min-w-0 flex-1 basis-[280px]"><Narrator line={p.line} k={p.k} /></div>
-        {p.frames && (
-          <div className="flex items-center gap-2">
-            <Square label="Step back (←)" onClick={() => p.onStep(-1)} disabled={p.step === 0}><I.StepBack size={20} /></Square>
-            <motion.button
-              onClick={p.onToggle}
-              aria-label={p.playing ? "Pause (space)" : atEnd ? "Play again" : "Play (space)"}
-              title={p.playing ? "Pause (space)" : atEnd ? "Play again" : "Play (space)"}
-              whileHover={{ scale: 1.06 }}
-              whileTap={{ scale: 0.88 }}
-              transition={{ type: "spring", stiffness: 520, damping: 15 }}
-              className="tap grid h-14 w-14 place-items-center text-forest sm:h-16 sm:w-20"
-              style={{ background: t.hex, transition: "background-color .4s" }}
-            >
-              <AnimatePresence mode="popLayout" initial={false}>
-                <motion.span key={p.playing ? "pause" : atEnd ? "again" : "play"} initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0, rotate: 90 }} transition={{ type: "spring", stiffness: 600, damping: 22 }}>
-                  {p.playing ? <I.Pause size={26} /> : atEnd ? <I.Restart size={26} /> : <I.Play size={26} className="translate-x-[2px]" />}
-                </motion.span>
-              </AnimatePresence>
-            </motion.button>
-            <Square label="Step forward (→)" onClick={() => p.onStep(1)} disabled={atEnd}><I.StepFwd size={20} /></Square>
-            <div className="ml-1 flex items-center bg-p2 p-1" role="group" aria-label="Auto-play speed">
-              {[1, 2].map((x) => (
-                <button key={x} onClick={() => p.onSpeed(x)} aria-pressed={p.speed === x} className="tap press relative h-11 px-3.5 text-[16px] font-bold">
-                  {p.speed === x && <motion.span layoutId="speed-pill" transition={spring} className="absolute inset-0 -z-10 bg-cream" />}
-                  <span className={p.speed === x ? "text-forest" : "text-on2"}>{x}×</span>
-                </button>
-              ))}
-            </div>
-            <span className="tnum ml-2 hidden font-mono text-[14px] text-on3 xl:inline">{p.step}/{total}</span>
-          </div>
-        )}
-      </div>
-      {p.frames && (
-        <input type="range" min={0} max={total} value={p.step} onChange={(e) => p.onJump(Number(e.target.value))} aria-label="Replay position" className="scrub absolute inset-x-0 -top-3 z-10 w-full cursor-pointer" />
-      )}
-    </div>
-  );
-}
-
-function Square({ children, onClick, label, disabled }: { children: ReactNode; onClick: () => void; label: string; disabled?: boolean }) {
-  return (
-    <motion.button
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      title={label}
-      whileHover={disabled ? undefined : { y: -2 }}
-      whileTap={disabled ? undefined : { scale: 0.86 }}
-      transition={{ type: "spring", stiffness: 520, damping: 15 }}
-      className="tap grid h-12 w-12 place-items-center bg-p2 text-on hover:bg-p3 disabled:cursor-not-allowed disabled:opacity-30"
-    >
-      {children}
-    </motion.button>
   );
 }

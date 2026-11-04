@@ -4,11 +4,11 @@
 // forest outlines and hard offset shadows: the neo-brutalist build of the dashboard's palette.
 // Layers move apart with the pointer and the scroll; under reduced motion everything holds still.
 import { motion, useScroll, useSpring, useTransform, type MotionValue } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { INK } from "./theme";
 
 const F = INK.forest;
-const COLUMNS = [INK.cream, INK.sky, INK.tangerine, INK.forest, INK.lilac];
+const COLUMNS = [INK.cream, INK.sky, INK.rose, INK.forest, INK.lilac];
 
 /** Two compositions: a wide one, and a tall one for phones and portrait tablets. */
 function geometry(tall: boolean) {
@@ -32,7 +32,32 @@ function geometry(tall: boolean) {
         hedge: { r: 0.78 },
       };
 }
-type Geo = ReturnType<typeof geometry>;
+type Geo = ReturnType<typeof geometry> & { L: number; R: number };
+
+/**
+ * A portrait screen wider than a phone (a tablet, a narrow window) would otherwise be zoomed into,
+ * cropping the sky and lifting the courthouse into the headline. Instead the tall world widens
+ * sideways: the extra room goes to the left, where the words are, and the wordmark spans it all.
+ */
+function fit(tall: boolean, aspect: number): Geo {
+  const g = geometry(tall);
+  const extra = tall ? Math.max(0, g.H * aspect - g.W) : 0;
+  if (!extra) return { ...g, L: 0, R: g.W };
+  const len = g.word.len + extra;
+  return { ...g, L: -extra, R: g.W, word: { ...g.word, x: g.word.x - extra, len, fs: g.word.fs * Math.min(1.6, len / g.word.len) } };
+}
+
+function useAspect(ref: RefObject<HTMLDivElement | null>): number {
+  const [aspect, setAspect] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => { const { width, height } = e.contentRect; if (height) setAspect(width / height); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return aspect;
+}
 
 function useTall(): boolean {
   const q = "(max-aspect-ratio: 1/1)";
@@ -63,7 +88,8 @@ function usePointer(): [MotionValue<number>, MotionValue<number>] {
 
 export function CourtScene() {
   const tall = useTall();
-  const g = geometry(tall);
+  const box = useRef<HTMLDivElement>(null);
+  const g = fit(tall, useAspect(box));
   const [px, py] = usePointer();
   const { scrollY } = useScroll();
   const p = useTransform(scrollY, [0, 900], [0, 1], { clamp: true });
@@ -76,15 +102,15 @@ export function CourtScene() {
   const sun = layer(8, 130), cloud = layer(16, 90), court = layer(22, 50), word = layer(32, -110), front = layer(46, 0);
 
   return (
-    <div className="absolute inset-0" aria-hidden>
-      <svg viewBox={`0 0 ${g.W} ${g.H}`} preserveAspectRatio="xMidYMax slice" className="absolute inset-0 h-full w-full">
+    <div ref={box} className="absolute inset-0" aria-hidden>
+      <svg viewBox={`${g.L} 0 ${g.R - g.L} ${g.H}`} preserveAspectRatio="xMidYMax slice" className="absolute inset-0 h-full w-full">
         <defs>
           <pattern id="sky-dots" width={tall ? 16 : 22} height={tall ? 16 : 22} patternUnits="userSpaceOnUse">
             <circle cx="2" cy="2" r={tall ? 1.1 : 1.5} fill={F} opacity=".16" />
           </pattern>
         </defs>
-        <rect x="-50" y="-50" width={g.W + 100} height={g.H + 100} fill={INK.sky} />
-        <rect x="-50" y="-50" width={g.W + 100} height={g.H + 100} fill="url(#sky-dots)" />
+        <rect x={g.L - 50} y="-50" width={g.R - g.L + 100} height={g.H + 100} fill={INK.sky} />
+        <rect x={g.L - 50} y="-50" width={g.R - g.L + 100} height={g.H + 100} fill="url(#sky-dots)" />
 
         {g.sun && <motion.g style={sun}><Seal {...g.sun} sw={g.sw} /></motion.g>}
         <motion.g style={cloud}>{g.clouds.map((c, i) => <Cloud key={i} {...c} sw={g.sw} slow={i % 2 === 1} />)}</motion.g>
@@ -193,7 +219,7 @@ function Front({ g }: { g: Geo }) {
   const band = (g.H - g.gy) / 3;
   const k = g.hedge.r;
   const hedge = (side: 1 | -1) => {
-    const X = (v: number) => (side === 1 ? v : g.W - v);
+    const X = (v: number) => (side === 1 ? g.L + v : g.R - v);
     const back = [[X(30 * k), g.gy - 70 * k, 92 * k], [X(150 * k), g.gy - 22 * k, 66 * k]] as const;
     const fore = [[X(-10 * k), g.gy - 10 * k, 80 * k], [X(96 * k), g.gy + 14 * k, 58 * k], [X(200 * k), g.gy + 30 * k, 44 * k]] as const;
     const blob = (cs: readonly (readonly [number, number, number])[], fill: string) => (
@@ -210,8 +236,8 @@ function Front({ g }: { g: Geo }) {
       {g.lanterns.map((x) => <Lantern key={x} x={x} gy={g.gy} sw={g.sw} />)}
       {[INK.forest, "#143322", "#1b3f2b"].map((c, i) => (
         <g key={c}>
-          <rect x={-60} y={g.gy + band * i} width={g.W + 120} height={band + 2} fill={c} />
-          <line x1={-60} x2={g.W + 60} y1={g.gy + band * i} y2={g.gy + band * i} stroke={INK.pine} strokeWidth={g.sw} />
+          <rect x={g.L - 60} y={g.gy + band * i} width={g.R - g.L + 120} height={band + 2} fill={c} />
+          <line x1={g.L - 60} x2={g.R + 60} y1={g.gy + band * i} y2={g.gy + band * i} stroke={INK.pine} strokeWidth={g.sw} />
         </g>
       ))}
       {hedge(1)}
@@ -226,7 +252,7 @@ function Lantern({ x, gy, sw }: { x: number; gy: number; sw: number }) {
     <g stroke={F} strokeWidth={sw} strokeLinejoin="round">
       <rect x={x - 6} y={top + 70} width={12} height={gy - top - 70} fill={F} />
       <rect x={x - 28 + 7} y={top + 14 + 7} width={56} height={58} fill={F} stroke="none" />
-      <rect x={x - 28} y={top + 14} width={56} height={58} fill={INK.tangerine} />
+      <rect x={x - 28} y={top + 14} width={56} height={58} fill={INK.rose} />
       <ellipse className="flicker" cx={x} cy={top + 46} rx={11} ry={18} fill={INK.cream} strokeWidth={sw * 0.75} />
       <polygon points={`${x - 40},${top + 16} ${x},${top - 12} ${x + 40},${top + 16}`} fill={F} />
     </g>
@@ -240,7 +266,7 @@ function Confetti({ count }: { count: number }) {
     const c = ref.current;
     const ctx = c?.getContext("2d");
     if (!c || !ctx || still()) return;
-    const colors = [INK.lime, INK.tangerine, INK.lilac, INK.cream];
+    const colors = [INK.lime, INK.rose, INK.lilac, INK.cream];
     let w = 0, h = 0, raf = 0, visible = true, wind = 0;
     const size = () => {
       const dpr = Math.min(2, devicePixelRatio || 1);

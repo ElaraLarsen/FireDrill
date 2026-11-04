@@ -22,8 +22,8 @@ interface Props {
 const ease = [0.16, 1, 0.3, 1] as const;
 const TIME: Record<string, string> = { case: "Step one", room: "Step two", attack: "Step three", ruling: "Step four", signoff: "Step five" };
 const FACTS = ["Every test runs for real", "An attack before any sign-off", "Only the gate can merge"];
-const FACT_HEX = [INK.sky, INK.tangerine, INK.lilac];
-const CYCLE = [INK.lime, INK.sky, INK.lilac, INK.tangerine];
+const FACT_HEX = [INK.sky, INK.rose, INK.lilac];
+const CYCLE = [INK.lime, INK.sky, INK.lilac, INK.rose];
 
 export function Home(p: Props) {
   const [pour, setPour] = useState<string | null>(null);

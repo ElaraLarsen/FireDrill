@@ -13,7 +13,7 @@ const commandOf = (body: string): string | null => {
 };
 
 export function narrate(f: Frame | null, approvers: string[] = []): Line {
-  if (!f) return { tone: "wait", title: "Ready when you are", detail: "Press play to watch the courtroom from the first move." };
+  if (!f) return { tone: "wait", title: "Ready when you are", detail: "Press Enter to run the first step, or type run." };
   const d = f.data ?? {};
   const who = f.actor?.name ?? "someone";
   switch (f.kind) {

@@ -1,8 +1,8 @@
 ---
 name: FireDrill Courtroom (mixed)
-description: An editorial courtroom on cream paper and deep forest, with four hues that each mean one thing (lime the fixer, tangerine the attack, sky the gate, lilac the human). One page per step, each in its own colour.
+description: An editorial courtroom on cream paper and deep forest, with four hues that each mean one thing (lime the fixer, rose the attack, sky the gate, lilac the human). One page per step, each in its own colour.
 colors:
-  tangerine: "#FF8A3D"
+  rose: "#FF8FB1"
   sky: "#8FCBF2"
   lilac: "#C4B3F6"
   forest: "#0F2A1D"
@@ -50,7 +50,7 @@ The ground is cream paper (#F3EEDF) and deep forest (#0F2A1D). Four hues sit on 
 | Hue | Means | Where it shows |
 |---|---|---|
 | lime #C6F432 | the fixer, "go" | fixer avatar and patch card, the merged seal, primary calls to action |
-| tangerine #FF8A3D | the attack | attack page board, breaker avatar, attack branch and tags, idempotency case |
+| rose #FF8FB1 | the attack | attack page board, breaker avatar, attack branch and tags, idempotency case |
 | sky #8FCBF2 | the gate | room page board, gate avatar, "testing" seal and waiting states, rate-limit case |
 | lilac #C4B3F6 | the human | sign-off page board, approver avatar, pagination case |
 
@@ -62,13 +62,13 @@ Each step of the drill has its own board, matching whoever acts on that page:
 |---|---|---|
 | Case | cream | forest |
 | Room | sky | forest |
-| Attack | tangerine | forest |
+| Attack | rose | forest |
 | Ruling | forest | cream |
 | Sign-off | lilac | forest |
 
 `App.tsx` sets `--board` and `--on-board` on `<html>` from `PAGE_INK`, and the board eases between pages. When the board is forest, `<html>` gets `board-dark` so the brand mark and grain adjust. Content sits on rounded forest panels (`.panel`), and the hues come back inside them as avatars, chips and tags. Forest text on every board is at least 6:1.
 
-**Liquid field** (`src/ui/LiquidChrome.tsx`): the reactbits Liquid Chrome warp, with its silver replaced by a ramp (deep forest, forest, pine, the hot colour, cream), lit more towards the bottom. On the home hero the hot colour turns lime → sky → lilac → tangerine every 4.5s (held still under reduced motion), and the "Pick a case" button follows it. Hovering a case pours that case's colour. On the ruling page it pours the verdict's colour. A forest scrim keeps the hero text readable.
+**Liquid field** (`src/ui/LiquidChrome.tsx`): the reactbits Liquid Chrome warp, with its silver replaced by a ramp (deep forest, forest, pine, the hot colour, cream), lit more towards the bottom. On the home hero the hot colour turns lime → sky → lilac → rose every 4.5s (held still under reduced motion), and the "Pick a case" button follows it. Hovering a case pours that case's colour. On the ruling page it pours the verdict's colour. A forest scrim keeps the hero text readable.
 
 ## Pages
 
@@ -84,14 +84,14 @@ Hash routes, so any static host works:
 
 ## Colors in use
 
-- **Cast:** fixer lime, breaker tangerine, gate sky, approver lilac, guest stone. Avatars are discs of the colour with the role's tool drawn in forest.
-- **States:** pass jade, fail scarlet, waiting sky, gate error tangerine. The merged seal is lime.
-- **Cases:** idempotency tangerine, rate limit sky, pagination lilac.
+- **Cast:** fixer lime, breaker rose, gate sky, approver lilac, guest stone. Avatars are discs of the colour with the role's tool drawn in forest.
+- **States:** pass jade, fail scarlet, waiting sky, gate error rose. The merged seal is lime.
+- **Cases:** idempotency rose, rate limit sky, pagination lilac.
 - **Tags:** pills of the colour with forest text. On forest panels the text is on / on-2 / on-3.
 - **Rules:**
   - Body text on every light board is forest, never cream.
   - Jade and scarlet are used as fills, big type, or beside an icon and a word, never as the only signal.
-  - A hue never changes meaning. If tangerine shows up, it is about the attack.
+  - A hue never changes meaning. If rose shows up, it is about the attack.
   - Banned: navy, pink, purple-blue gradients, pure black and pure white. The only gradients are the liquid field and the hero's forest scrim.
 
 ## Landing page (`#/landing`)
@@ -162,3 +162,11 @@ Confetti is printed in all the hues. Opening a case that has already merged does
   - add an approve button;
   - add a fifth hue, or use one of the four for something other than its role;
   - set body text in the serif, or titles in the grotesk.
+
+## Console (replaces the video-style player)
+The foot of every case page is a quiet terminal card (`src/ui/Console.tsx`, logic in `src/console.ts`), set in JetBrains Mono on a darker forest. It is not a media player: no play/pause, no scrubber, no speed, and Space does nothing.
+- The room log scrolls by as a transcript. Each line is printed from exactly one recorded frame (time, who, what), coloured by role. The newest line is followed by a dim `# plain-language comment`.
+- The prompt is a real input. Enter runs the next step. Commands: `next [n]`, `back [n]`, `run` (plays on its own; any key stops it), `reset`, `goto <page>`, `case <name>`, `status`, `clear`, `home`, `help`. Tab completes, Up/Down walks history, `/` focuses the prompt.
+- Back / next / run are also small text buttons at the right of the prompt, for touch screens.
+- Opening a case no longer auto-plays; it waits for Enter. The console is labelled "scripted cast" for recorded drills.
+- Colour change: the attack colour is now rose (`#FF8FB1`), replacing the orange.

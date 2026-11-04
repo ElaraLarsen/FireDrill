@@ -4,17 +4,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fixtureRuns, gateRuns, type Run } from "./fixtures";
 import { confetti, installTapFeedback } from "./fx";
 import * as I from "./icons";
-import { replay } from "./model";
+import { INCIDENTS, replay } from "./model";
 import { nextStepOn, PAGE_META, PAGES, pageForState, pageStates, pageTrack, type Page } from "./pages";
 import { fromLegacyLink, useRoute } from "./router";
 import { narrate, narrateState } from "./story";
+import type { Cmd } from "./console";
 import { AttackPage } from "./ui/AttackPage";
 import { CasePage } from "./ui/CasePage";
+import { Console } from "./ui/Console";
 import { HOME_BOARD, Home } from "./ui/Home";
 import { LANDING_BOARD, Landing } from "./ui/Landing";
 import { RoomPage } from "./ui/RoomPage";
 import { RulingPage } from "./ui/RulingPage";
-import { Dock, pageIcon, TopBar, Trail } from "./ui/Shell";
+import { pageIcon, TopBar, Trail } from "./ui/Shell";
 import { SignoffPage } from "./ui/SignoffPage";
 import { INK, PAGE_INK } from "./ui/theme";
 import { useLive } from "./useLive";
@@ -42,7 +44,6 @@ export default function App() {
   // Open on the step the address names, so a link to a finished drill doesn't replay its celebration.
   const [step, setStep] = useState(() => (route.name === "case" ? resolve(route.step) : 0));
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);
   // While true, the page follows the story: every step lands on the page its frame belongs to.
   const follow = useRef(fromLegacyLink);
   const lenis = useRef<Lenis | null>(null);
@@ -102,15 +103,15 @@ export default function App() {
     // A page that just opened gets a moment of its own before the story moves on.
     const arrived = step > 0 && track[step] !== track[step - 1];
     const base = Math.max(arrived ? 2200 : 0, next === "check" ? 320 : next === "verdict" || next === "merge" ? 1500 : 1000);
-    const t = window.setTimeout(() => { follow.current = true; setStep((s) => Math.min(total, s + 1)); }, base / speed);
+    const t = window.setTimeout(() => { follow.current = true; setStep((s) => Math.min(total, s + 1)); }, base);
     return () => window.clearTimeout(t);
-  }, [playing, step, total, speed, run, track]);
+  }, [playing, step, total, run, track]);
 
   const pick = useCallback((id: string) => {
     follow.current = true;
     go({ name: "case", run: id, page: "case", step: 0 });
     setStep(0);
-    setPlaying(true);
+    setPlaying(false);
   }, [go]);
   const home = () => { setPlaying(false); go({ name: "home" }); };
   // In-page jumps on the landing page go through Lenis, so they glide like the rest of the scroll.
@@ -122,13 +123,7 @@ export default function App() {
     else el.scrollIntoView();
   };
   const goLive = () => { follow.current = true; setPlaying(false); go({ name: "live", page: pageForState(liveState) }); };
-  const toggle = useCallback(() => {
-    if (!run) return;
-    follow.current = true;
-    if (step >= total) { setStep(0); setPlaying(true); } else setPlaying((p) => !p);
-  }, [run, step, total]);
   const stepBy = useCallback((d: number) => { follow.current = true; setPlaying(false); setStep((s) => Math.max(0, Math.min(total, s + d))); }, [total]);
-  const jump = useCallback((n: number) => { follow.current = true; setPlaying(false); setStep(Math.max(0, Math.min(total, n))); }, [total]);
   const openPage = useCallback((p: Page) => {
     follow.current = false;
     if (route.name === "case") go({ ...route, page: p, step });
@@ -142,21 +137,59 @@ export default function App() {
     setStep(n);
   }, [run, track, step, openPage]);
 
-  // Space plays/pauses, arrows step, while no control has focus.
+  /** The prompt's commands. Whatever can't be done returns a sentence for the console to print. */
+  const exec = useCallback((c: Cmd): string | void => {
+    if (route.name === "home") return;
+    switch (c.t) {
+      case "next":
+        if (!run) return "Following a live gate: there are no recorded steps to run.";
+        if (step >= total) return "That is the end of the drill. Try reset, back, or case <name>.";
+        stepBy(c.n);
+        return;
+      case "back":
+        if (!run || step === 0) return "Already at the start.";
+        stepBy(-c.n);
+        return;
+      case "run":
+        if (!run) return "Following a live gate: there is nothing to run.";
+        if (step >= total) return "That is the end of the drill. Try reset first.";
+        follow.current = true;
+        setPlaying(true);
+        return;
+      case "reset":
+        if (!run) return "Following a live gate: there is nothing to rewind.";
+        follow.current = true; setPlaying(false); setStep(0);
+        return;
+      case "goto": openPage(c.page); return;
+      case "case": {
+        const r = runFor(c.id);
+        if (!r) return `No case called ${c.id}. Try ${INCIDENTS.join(", ")}.`;
+        pick(r.id);
+        return;
+      }
+      case "home": home(); return;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route, run, step, total, stepBy, openPage, pick, runs]);
+
+  // While it runs on its own, any key stops it. Arrows step when the prompt isn't holding focus.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!run || (e.target as HTMLElement)?.closest?.("input, select, textarea, summary, button")) return;
-      if (e.key === " ") { e.preventDefault(); toggle(); }
-      else if (e.key === "ArrowRight") stepBy(1);
+      if (!run || e.metaKey || e.altKey || ["Shift", "Control", "Meta", "Alt"].includes(e.key)) return;
+      if (playing) { e.preventDefault(); setPlaying(false); return; }
+      if ((e.target as HTMLElement)?.closest?.("input, select, textarea, summary, button")) return;
+      if (e.key === "ArrowRight") stepBy(1);
       else if (e.key === "ArrowLeft") stepBy(-1);
+      else if (e.key === "/") { e.preventDefault(); document.querySelector<HTMLInputElement>(".term-input")?.focus(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [run, toggle, stepBy]);
+  }, [run, playing, stepBy]);
 
   const state = run ? replay(run.frames, step) : liveState;
   const frame = run && step > 0 ? run.frames[step - 1] : null;
   const line = run ? narrate(frame, state.approvers) : narrateState(state);
+  const nextLine = run && step < total ? narrate(run.frames[step], state.approvers) : null;
   const page: Page = route.name === "home" || route.name === "landing" ? "case" : route.page;
 
   // Celebrate the moment the gate merges (not when a page simply opens on a merged drill).
@@ -229,7 +262,7 @@ export default function App() {
     <MotionConfig reducedMotion="user">
       <a href="#page" className="skip">Skip to the page</a>
       <div className="grain" aria-hidden />
-      <div className="relative mx-auto max-w-[1440px] pb-[260px] sm:pb-[200px]">
+      <div className="relative mx-auto max-w-[1440px] pb-[calc(var(--dock,200px)+32px)]">
         <TopBar
           run={run} link={link}
           runFor={runFor}
@@ -285,11 +318,13 @@ export default function App() {
         </main>
       </div>
 
-      <Dock
-        line={line} k={`${run?.id}-${step}`}
-        frames={run?.frames ?? null} step={step} track={track}
-        playing={playing} speed={speed}
-        onToggle={toggle} onStep={stepBy} onJump={jump} onSpeed={setSpeed}
+      <Console
+        title={run?.incident ?? liveState.incident ?? "live"}
+        meta={run ? `${run.scripted ? "scripted cast" : "recorded room"} · ${run.verifier === "test-stand-in" ? "test verifier" : "real verifier"} · replay` : "live gate"}
+        frames={run?.frames ?? null} step={step}
+        running={playing} state={state} page={page}
+        line={line} nextLine={nextLine}
+        onCommand={exec} onStop={() => setPlaying(false)}
       />
     </MotionConfig>
   );
