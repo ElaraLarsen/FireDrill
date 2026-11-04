@@ -15,7 +15,9 @@ export type Role = "fixer" | "breaker" | "gate" | "approver" | "human";
 export const INK = {
   forest: "#0f2a1d", pine: "#2f5d3f", moss: "#7fb77e", sage: "#a9c5a0", cream: "#f3eedf", lime: "#c6f432",
   rose: "#ff8fb1", sky: "#8fcbf2", lilac: "#c4b3f6",
-  jade: "#1fa463", scarlet: "#e5383b", stone: "#b9c4b0",
+  jade: "#1fa463", scarlet: "#ff6b6b", stone: "#b9c4b0",
+  /** Text-safe tints for use on forest panels (AA contrast). */
+  mint: "#3ddc8f", flare: "#ff8585",
 } as const;
 
 /** Each step has its own board: who is acting on that page wears the same colour. */

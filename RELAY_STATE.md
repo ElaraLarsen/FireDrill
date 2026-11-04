@@ -1,7 +1,7 @@
 # RELAY_STATE — FireDrill live ledger
 
 ## Last Active Agent
-**Presentation lane (Teammate 2)**: 2026-11-04 ~17:00 IST: neo-brutalist landing page at `#/landing` (hand-drawn SVG courthouse hero, GSAP interactions), merged with the console commit e9e49fc and pushed to `main`. Before that: presentation lane 16:45 IST (terminal console replaces the player; attack colour rose), presentation lane 16:30 IST (mixed palette pushed to `main` as 0aaf3ee), 16:25 IST (mixed palette), 16:15 IST (green), 16:10 IST (sunset), 16:00 IST (riso), 15:30 IST (night court), 14:45 IST (bright UI, D22), Codex 13:15 IST.
+**Presentation lane (Teammate 2)**: 2026-11-04 ~18:00 IST: glass console hidden behind a pill with working window dots, Playwright e2e and accessibility fixes; pushed to main.
 
 ## Winning Project
 **FireDrill: an adversarial hotfix courtroom in chat.**
@@ -37,7 +37,13 @@ Hook: Switch's own incident-response docs admit human approval is "instructions 
 - [x] Presentation lane built and tested (telemetry, dashboard, compose, README, demo script, blog). Compose unrun (no Docker daemon); no live Switch yet.
 - [ ] First live end-to-end drill
 
-## Completed in This Turn (presentation lane, phase 13: landing page + GSAP — on main)
+## Completed in This Turn (presentation lane, phase 14: glass console, Playwright audit — pushed to main)
+- Built on the contributor's landing page (`529428b`, GSAP, `#/landing`), pulled first.
+- Console is now hidden by default behind a glass pill (back / Console n/total / next). It opens with a spring animation, closes with the red dot or Escape, yellow shrinks it to the prompt, green enlarges; the glass is tinted by the page's board colour. Files: `dashboard/src/ui/Console.tsx`, `src/index.css`, `src/App.tsx`, `DESIGN.md`, `README.md`, `docs/dashboard.jpg`.
+- Playwright (`dashboard/e2e/`, `playwright.config.ts`, `npm run e2e`; uses the installed Chrome, desktop + phone profiles): 78 test runs. Bugs it found, now fixed: prompt not focused on open; page margin not following the open console (content hidden behind it); the Enter that starts `run` also stopped it; Trail tabs had no accessible name on phones and a label/content mismatch; landing stats `<dl>` invalid markup and GSAP SplitText `aria-label` on `<p>`; colour contrast below AA on scarlet/jade chips and text and on low-opacity landing labels (new `flare`/`mint` tokens, scarlet `#FF6B6B`).
+- Verification: `npx tsc -b` clean; `npx vitest run` 56 passed; `npx playwright test` 78 passed; `npm run build` ok. Not tested: real touch hardware, Safari/Firefox (glass uses `backdrop-filter`, with a solid fallback), a hosted deploy.
+
+## Previous turn (presentation lane, phase 13: landing page + GSAP — on main)
 - The user asked for the mixed palette on `main`. It was committed on `ui/deep-courtroom-pages` and fast-forwarded to `main`: `834fee0..0aaf3ee main -> main`.
 - While this was in progress a teammate pushed e9e49fc (terminal console; attack hue tangerine renamed rose `#FF8FB1`). Merged it rather than overwriting: conflicts in `App.tsx` (kept both `nextLine` and the landing route), `index.css` (both new blocks; one reduced-motion list) and this file. The landing files were switched from `tangerine` to `rose` to match.
 - The user then asked for a landing page modelled on threeui.com's "Kage" landing: a loader, a layered hero with a giant wordmark behind the foreground, a story band with stats, a pinned card reel, a chapters grid, a big closing word, and a three-column footer. Our data, our palette and fonts, a self-built background, and a neo-brutalist theme. Later they asked for GSAP.
@@ -411,6 +417,7 @@ Bugs the tests caught and fixed:
   4. Whether the seeded Mattermost `user` is the `{$creator}` when the template is run from Console. `replay_demo.py` assumes it can see the channel.
 
 ## Decisions Log
+- D24 (2026-11-04, presentation lane; user-requested): console hidden by default behind a glass pill; Playwright added as a dev dependency with e2e tests; colour tokens `flare`/`mint` added and scarlet brightened for AA contrast. The contributor's landing-page files got small accessibility-only fixes (stats list markup, SplitText aria, label contrast).
 - D23 (2026-11-04, presentation lane; user-requested): the bottom player is now a terminal console (`Console.tsx`). Opening a case no longer auto-plays; Space no longer toggles playback. The attack hue is rose, not orange. `model.ts`, fixtures and the gate are unchanged.
 - D22 (2026-11-04, presentation lane; user-requested): the bright UI replaces the obsidian one on main. Codex's D21 files that only served the old UI were removed; its fonts, favicon and Inter exception were kept. To go back: `git revert` the merge commit.
 - D21 (2026-11-04, Codex; explicit user request): Codex owns this dashboard-only visual overhaul in the presentation lane. Allowed edits: dashboard/, docs/dashboard.jpg, RELAY_STATE.md. Preserve model.ts, existing tests and fixtures; no backend inspection or execution. Commit and push main when verified.

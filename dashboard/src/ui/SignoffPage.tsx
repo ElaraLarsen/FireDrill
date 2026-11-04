@@ -69,7 +69,7 @@ export function SignoffPage({ s }: { s: State }) {
               {so.phase === "signed" && so.text}
               {so.phase === "merged" && v?.signoff && (
                 <>
-                  <span className="font-mono text-[15px] font-bold text-jade">{so.text}</span>
+                  <span className="font-mono text-[15px] font-bold text-mint">{so.text}</span>
                   <span className="mt-1 block">Signed off by <b className="text-on">{v.signoff.by}</b>{v.signoff.participant && <> · <span className="font-mono text-[14px]">{v.signoff.participant}</span></>}</span>
                 </>
               )}
@@ -77,7 +77,7 @@ export function SignoffPage({ s }: { s: State }) {
                 <>
                   Type this in the room to sign off:
                   <motion.button whileTap={{ scale: 0.96 }} onClick={copy} className="tap mt-3 flex w-full items-center gap-3 bg-p2 py-2 pl-4 pr-2 text-left outline outline-2 -outline-offset-2 outline-jade/60 hover:outline-jade">
-                    <code className="min-w-0 flex-1 truncate font-mono text-[15px] font-bold text-jade">{cmd}</code>
+                    <code className="min-w-0 flex-1 truncate font-mono text-[15px] font-bold text-mint">{cmd}</code>
                     <AnimatePresence mode="popLayout" initial={false}>
                       <motion.span key={copied ? "y" : "n"} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} className={`inline-flex h-10 shrink-0 items-center gap-1.5 px-3 text-[14px] font-semibold ${copied ? "bg-cream text-forest" : "bg-jade text-forest"}`}>
                         {copied ? <><I.Check size={14} /> Copied</> : <><I.Copy size={14} /> Copy</>}
@@ -103,7 +103,7 @@ export function SignoffPage({ s }: { s: State }) {
                 <motion.li key={`${r.ts}-${i}`} initial={{ x: 30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: "spring", stiffness: 300, damping: 24, delay: i * 0.06 }} className="flex gap-3 bg-p2 p-4" style={{ borderLeft: `5px solid ${INK.scarlet}` }}>
                   <Avatar role="human" size={40} />
                   <span className="min-w-0">
-                    <span className="flex items-center gap-2 text-[16px] font-semibold text-scarlet"><I.Hand size={16} /> Refused · {r.by}</span>
+                    <span className="flex items-center gap-2 text-[16px] font-semibold text-flare"><I.Hand size={16} /> Refused · {r.by}</span>
                     <span className="mt-1 block text-[15px] leading-relaxed text-on2">{r.reason}</span>
                   </span>
                 </motion.li>

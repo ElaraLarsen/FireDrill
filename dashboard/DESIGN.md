@@ -18,7 +18,7 @@ colors:
   on-2: "#CDD8C4"
   on-3: "#9BB092"
   jade: "#1FA463"
-  scarlet: "#E5383B"
+  scarlet: "#FF6B6B"
   stone: "#B9C4B0"
 typography:
   display:
@@ -54,7 +54,7 @@ The ground is cream paper (#F3EEDF) and deep forest (#0F2A1D). Four hues sit on 
 | sky #8FCBF2 | the gate | room page board, gate avatar, "testing" seal and waiting states, rate-limit case |
 | lilac #C4B3F6 | the human | sign-off page board, approver avatar, pagination case |
 
-Jade (#1FA463) is a pass and scarlet (#E5383B) a failure. Sage, moss, pine and stone are quiet supporting neutrals. There is no navy, pink or purple-blue.
+Jade (#1FA463) is a pass and scarlet (#FF6B6B) a failure. Sage, moss, pine and stone are quiet supporting neutrals. There is no navy, pink or purple-blue.
 
 Each step of the drill has its own board, matching whoever acts on that page:
 
@@ -164,9 +164,17 @@ Confetti is printed in all the hues. Opening a case that has already merged does
   - set body text in the serif, or titles in the grotesk.
 
 ## Console (replaces the video-style player)
-The foot of every case page is a quiet terminal card (`src/ui/Console.tsx`, logic in `src/console.ts`), set in JetBrains Mono on a darker forest. It is not a media player: no play/pause, no scrubber, no speed, and Space does nothing.
-- The room log scrolls by as a transcript. Each line is printed from exactly one recorded frame (time, who, what), coloured by role. The newest line is followed by a dim `# plain-language comment`.
-- The prompt is a real input. Enter runs the next step. Commands: `next [n]`, `back [n]`, `run` (plays on its own; any key stops it), `reset`, `goto <page>`, `case <name>`, `status`, `clear`, `home`, `help`. Tab completes, Up/Down walks history, `/` focuses the prompt.
-- Back / next / run are also small text buttons at the right of the prompt, for touch screens.
-- Opening a case no longer auto-plays; it waits for Enter. The console is labelled "scripted cast" for recorded drills.
-- Colour change: the attack colour is now rose (`#FF8FB1`), replacing the orange.
+A glass window that is hidden until asked for (`src/ui/Console.tsx`, logic in `src/console.ts`). It is not a media player: no play/pause, no scrubber, no speed, and Space does nothing.
+- **Hidden by default.** The page shows a small glass pill at the foot: `‹  ❯ Console 12/48  ›`. The arrows step the replay without opening anything. Click the pill, or press `/` or a backtick, and the window springs up out of it (blur, scale, rise); Escape puts it away again and returns focus to the pill. It stays open while you move between pages.
+- **Window dots work.** Red closes it. Yellow shrinks it to just the prompt (and back). Green makes it taller (and back). Each shows its glyph when you point at the dots. A command typed while it is shrunk reopens the log so the answer is visible.
+- **Glass.** A frosted pane (`backdrop-filter: blur(30px) saturate(190%)`), lit from the top left with an inset specular edge, tinted by the page it floats over. Its ink is the page's own `--on-board`, so it reads on cream, sky, rose, lilac and forest alike; on the dark ruling page it turns smoked glass. Role colours (fixer, breaker, gate, human, pass, fail) have a light-glass set and a dark-glass set.
+- **Transcript.** The room log scrolls by as lines in JetBrains Mono. Each line is printed from exactly one recorded frame (time, who, what), followed by a dim `# plain-language comment`.
+- **Prompt.** A real input. Enter runs the next step. Commands: `next [n]`, `back [n]`, `run` (plays on its own; any key stops it), `reset`, `goto <page>`, `case <name>`, `status`, `clear`, `home`, `help`. Tab completes, Up/Down walks history.
+- Opening a case no longer auto-plays; it waits for you. The console is labelled "scripted cast" for recorded drills.
+
+## Colour tokens added with the console
+- The attack colour is rose (`#FF8FB1`), not orange.
+- Scarlet is `#FF6B6B` (forest text on it passes AA). `flare` (`#FF8585`) and `mint` (`#3DDC8F`) are the text-safe tints of fail and pass for use on forest panels; use scarlet and jade for fills.
+
+## Tests
+`npm test` runs the unit tests (vitest). `npm run e2e` runs Playwright against the dev server in Chrome, on a desktop and a phone profile: the console (hidden by default, animation, dots, every command, run/stop, every incident to its merge), every route for page errors and horizontal scroll, axe (serious and critical rules) with the console open, and WCAG AA colour contrast with it closed.

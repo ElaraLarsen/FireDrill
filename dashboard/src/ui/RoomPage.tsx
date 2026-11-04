@@ -66,7 +66,7 @@ function Bubble({ m, role, selected, dim, onSelect }: { m: Msg; role: Role; sele
         <span className={`mb-1.5 flex flex-wrap items-center gap-2 ${mine ? "flex-row-reverse" : ""}`}>
           <span className="text-[13px] tracking-serif" style={{ color: r.hex }}>{r.tag}</span>
           <span className="text-[13px] font-medium text-on3">{m.actor.name}</span>
-          {refused && <span className="inline-flex items-center gap-1 bg-scarlet px-2 py-0.5 text-[12px] font-semibold text-forest"><I.Hand size={12} />refused</span>}
+          {refused && <span className="inline-flex items-center gap-1 bg-flare px-2 py-0.5 text-[12px] font-semibold text-forest"><I.Hand size={12} />refused</span>}
           {merged && <span className="inline-flex items-center gap-1 bg-jade px-2 py-0.5 text-[12px] font-semibold text-forest"><I.Sparkle size={12} />merged</span>}
           <span className="tnum font-mono text-[12px] text-on3">{hhmm(m.ts)}</span>
         </span>
@@ -159,7 +159,7 @@ function Patch({ s }: { s: State }) {
               <span className="inline-flex items-center gap-2" title={`${d.insertions} lines added, ${d.deletions} removed in ${d.names.join(", ")}`}>
                 <span className="flex h-4 w-28 overflow-hidden bg-forest">
                   <motion.span initial={{ width: 0 }} animate={{ width: `${(d.insertions / total) * 100}%` }} transition={{ duration: 0.8, ease: "easeOut" }} className="bg-jade" />
-                  <motion.span initial={{ width: 0 }} animate={{ width: `${(d.deletions / total) * 100}%` }} transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }} className="bg-scarlet" />
+                  <motion.span initial={{ width: 0 }} animate={{ width: `${(d.deletions / total) * 100}%` }} transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }} className="bg-flare" />
                 </span>
                 <span className="tnum font-mono text-[15px] font-bold">+{d.insertions} −{d.deletions}</span>
               </span>

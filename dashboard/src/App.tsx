@@ -46,6 +46,8 @@ export default function App() {
   const [playing, setPlaying] = useState(false);
   // While true, the page follows the story: every step lands on the page its frame belongs to.
   const follow = useRef(fromLegacyLink);
+  // The Enter that starts a run must not also be the "any key" that stops it.
+  const startedAt = useRef(0);
   const lenis = useRef<Lenis | null>(null);
 
   useEffect(() => installTapFeedback(), []);
@@ -154,6 +156,7 @@ export default function App() {
         if (!run) return "Following a live gate: there is nothing to run.";
         if (step >= total) return "That is the end of the drill. Try reset first.";
         follow.current = true;
+        startedAt.current = performance.now();
         setPlaying(true);
         return;
       case "reset":
@@ -176,7 +179,7 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!run || e.metaKey || e.altKey || ["Shift", "Control", "Meta", "Alt"].includes(e.key)) return;
-      if (playing) { e.preventDefault(); setPlaying(false); return; }
+      if (playing) { if (performance.now() - startedAt.current > 300) { e.preventDefault(); setPlaying(false); } return; }
       if ((e.target as HTMLElement)?.closest?.("input, select, textarea, summary, button")) return;
       if (e.key === "ArrowRight") stepBy(1);
       else if (e.key === "ArrowLeft") stepBy(-1);

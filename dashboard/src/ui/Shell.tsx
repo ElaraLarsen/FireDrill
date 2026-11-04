@@ -94,7 +94,7 @@ function Status({ run, link }: { run: Run | null; link: string }) {
   const real = run.verifier !== "test-stand-in";
   const full = `Replay · ${real ? "real test evidence" : "test verifier"}${run.scripted ? " · scripted cast" : ""}`;
   return (
-    <span className="inline-flex h-11 items-center gap-2 px-2 text-[15px] font-bold text-jade" title={full}>
+    <span className="inline-flex h-11 items-center gap-2 px-2 text-[15px] font-bold text-mint" title={full}>
       <span className="blink h-2.5 w-2.5 bg-current" />
       <span className="sr-only sm:not-sr-only">Replay</span><span className="hidden 2xl:inline">{full.slice(6)}</span>
     </span>
@@ -130,7 +130,6 @@ export function Trail({ page, states, onGo }: { page: Page; states: Record<Page,
               <motion.button
                 onClick={() => onGo(p)}
                 aria-current={on ? "step" : undefined}
-                aria-label={`${PAGE_META[p].label}${STATE_WORD[st] ? `: ${STATE_WORD[st]}` : ""}`}
                 animate={{ height: on ? 76 : 58 }}
                 whileHover={on ? undefined : { height: 64 }}
                 whileTap={{ scale: 0.97 }}
@@ -142,11 +141,12 @@ export function Trail({ page, states, onGo }: { page: Page; states: Record<Page,
                   {st === "done" && !on ? <DrawnCheck /> : st === "failed" && !on ? <I.Cross size={20} /> : PAGE_ICON[p](20)}
                   {on && st === "active" && <span className="pingring absolute inset-0" />}
                 </span>
-                <span className={`min-w-0 ${on ? "" : "hidden md:block"}`}>
+                <span className={`min-w-0 ${on ? "" : "sr-only md:not-sr-only"}`}>
                   <span className="block truncate text-[16px] font-semibold leading-tight">{PAGE_META[p].short}</span>
                   {on && <span className="hidden truncate text-[13px] font-medium opacity-80 sm:block">{PAGE_META[p].plain}</span>}
+                  {STATE_WORD[st] && <span className="sr-only">, {STATE_WORD[st]}</span>}
                 </span>
-                {st === "failed" && <span className="ml-auto hidden bg-forest px-1.5 py-0.5 text-[11px] font-semibold text-scarlet xl:inline">broken</span>}
+                {st === "failed" && <span className="ml-auto hidden bg-forest px-1.5 py-0.5 text-[11px] font-semibold text-flare xl:inline">broken</span>}
               </motion.button>
             </li>
           );

@@ -101,7 +101,7 @@ function CheckRow({ c, max, index }: { c: Check; max: number; index: number }) {
       <button onClick={() => setOpen(!open)} aria-expanded={open} className="tap press flex w-full items-center gap-4 px-3 py-3 text-left hover:bg-p3">
         <motion.span
           initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 14, delay: 0.1 + index * 0.05 }}
-          className={`grid h-10 w-10 shrink-0 place-items-center text-forest ${ok ? "bg-jade" : "bg-scarlet"}`}
+          className={`grid h-10 w-10 shrink-0 place-items-center text-forest ${ok ? "bg-jade" : "bg-flare"}`}
         >
           {ok ? <I.Check size={20} /> : <I.Cross size={18} />}
         </motion.span>
@@ -111,7 +111,7 @@ function CheckRow({ c, max, index }: { c: Check; max: number; index: number }) {
             {c.kind === "attack" && <span className="shrink-0 bg-rose px-2 py-0.5 text-[12px] font-semibold text-forest">attack</span>}
           </span>
           <span className="mt-1.5 block h-2 overflow-hidden bg-p3">
-            <motion.span initial={{ width: 0 }} animate={{ width: `${w}%` }} transition={{ duration: 0.7, delay: 0.15 + index * 0.05, ease: "easeOut" }} className={`block h-full ${ok ? "bg-jade" : "bg-scarlet"}`} />
+            <motion.span initial={{ width: 0 }} animate={{ width: `${w}%` }} transition={{ duration: 0.7, delay: 0.15 + index * 0.05, ease: "easeOut" }} className={`block h-full ${ok ? "bg-jade" : "bg-flare"}`} />
           </span>
         </span>
         <span className="tnum shrink-0 font-mono text-[14px] text-on2">{c.duration_ms ?? "—"} ms</span>

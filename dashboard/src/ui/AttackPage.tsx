@@ -20,7 +20,7 @@ function Tile({ r, v, index }: { r: AttackRow; v: Verdict; index: number }) {
     wait: { bg: "var(--color-p2)", fg: INK.cream, icon: <I.Sparkle size={26} />, word: "Not run yet", sub: "" },
   }[kind];
   const tail = (onFix?.output_tail ?? ref?.output_tail ?? "").trim().split("\n").slice(-5).join("\n");
-  const pill = (ok: boolean | null) => (ok === null ? "bg-p3 text-on2" : ok ? "bg-jade text-forest" : "bg-scarlet text-forest");
+  const pill = (ok: boolean | null) => (ok === null ? "bg-p3 text-on2" : ok ? "bg-jade text-forest" : "bg-flare text-forest");
   return (
     <motion.button
       initial={{ y: 40, opacity: 0, rotateZ: index % 2 ? 3 : -3 }}
@@ -101,7 +101,7 @@ export function AttackPage({ s }: { s: State }) {
               const on = v.id === shown?.id;
               const hex = v.result === "GREEN" ? INK.jade : INK.scarlet;
               return (
-                <button key={v.id} onClick={() => setPick(v.id)} aria-pressed={on} className="tap press relative isolate h-10 px-4 text-[14px] font-semibold" style={{ color: on ? INK.forest : hex }}>
+                <button key={v.id} onClick={() => setPick(v.id)} aria-pressed={on} className="tap press relative isolate h-10 px-4 text-[14px] font-semibold" style={{ color: on ? INK.forest : v.result === "GREEN" ? INK.mint : INK.flare }}>
                   {on && <motion.span layoutId="verdict-pill" className="absolute inset-0 -z-10" style={{ background: hex }} />}
                   {v.id.replace(/^V-.*-(\d+)$/, "V-$1")} {v.result}
                 </button>

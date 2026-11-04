@@ -36,7 +36,7 @@ export function useLandingFx(root: RefObject<HTMLElement | null>) {
 
       for (const p of q('[data-gsap="lines"]')) {
         SplitText.create(p, {
-          type: "lines", mask: "lines", autoSplit: true,
+          type: "lines", mask: "lines", autoSplit: true, aria: "none",
           onSplit: (self) => gsap.from(self.lines, {
             yPercent: 110, duration: 1, ease: "expo.out", stagger: 0.09,
             scrollTrigger: { trigger: p, start: "top 85%", once: true },
