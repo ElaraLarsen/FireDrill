@@ -27,3 +27,20 @@ export const Flame = ({ size, ...p }: P) => (
     <path d="M5 20.5h14" />
   </svg>
 );
+
+export const Folder = ({ size, ...p }: P) => <svg {...base(size)} {...p}><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" /></svg>;
+export const Wrench = ({ size, ...p }: P) => <svg {...base(size)} {...p}><path d="M14.5 6.5a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3l7.5-7.5a4 4 0 0 0-2-2z" /><path d="M14.5 6.5l3-3" /></svg>;
+export const Zap = ({ size, ...p }: P) => <svg {...base(size)} {...p}><path d="M13 2.5L4.5 13.5H12l-1 8 8.5-11H12z" /></svg>;
+export const Hammer = ({ size, ...p }: P) => <svg {...base(size)} {...p}><path d="M14 4l6 6-2.5 2.5-6-6z" /><path d="M11.5 6.5L3.5 14.5l3 3 8-8" /><path d="M5 19l2-2" /></svg>;
+export const Pen = ({ size, ...p }: P) => <svg {...base(size)} {...p}><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z" /><path d="M13.5 6.5l4 4" /></svg>;
+export const Gavel = ({ size, ...p }: P) => <svg {...base(size)} {...p}><path d="M13 3.5l7.5 7.5M9.5 7l7.5 7.5M11.3 5.2l-4.1 4.1 7.5 7.5 4.1-4.1z" /><path d="M8.5 13.5L3 19M2.5 21.5h9" /></svg>;
+export const Copy = ({ size, ...p }: P) => <svg {...base(size)} {...p}><rect x="8.5" y="8.5" width="12" height="12" rx="2.5" /><path d="M15.5 8.5V6a2.5 2.5 0 0 0-2.5-2.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2.5" /></svg>;
+export const CreditCard = ({ size, ...p }: P) => <svg {...base(size)} {...p}><rect x="2.5" y="5.5" width="19" height="13" rx="2.5" /><path d="M2.5 10h19M6.5 15h4" /></svg>;
+export const Gauge = ({ size, ...p }: P) => <svg {...base(size)} {...p}><path d="M4.5 18a8.5 8.5 0 1 1 15 0" /><path d="M12 13.5l4-4.5" /><circle cx="12" cy="14" r="1.4" fill="currentColor" /></svg>;
+export const Pages = ({ size, ...p }: P) => <svg {...base(size)} {...p}><rect x="6.5" y="3.5" width="12" height="15" rx="2" /><path d="M4 7v12.5A1.5 1.5 0 0 0 5.5 21H15M9.5 8h6M9.5 11.5h6M9.5 15h3.5" /></svg>;
+export const Sparkle = ({ size, ...p }: P) => <svg {...base(size)} {...p}><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /><path d="M19 17l.7 1.8 1.8.7-1.8.7L19 22l-.7-1.8-1.8-.7 1.8-.7z" /></svg>;
+export const Hand = ({ size, ...p }: P) => <svg {...base(size)} {...p}><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11M11 10V4a1.5 1.5 0 0 1 3 0v6M14 10V5.5a1.5 1.5 0 0 1 3 0V13c0 4.4-2.6 7.5-6.2 7.5-2.4 0-3.7-1.2-5.2-3.4L3.8 14a1.5 1.5 0 0 1 2.5-1.6L8 14.5" /></svg>;
+export const Key = ({ size, ...p }: P) => <svg {...base(size)} {...p}><circle cx="8" cy="15" r="4" /><path d="M11 12l9-9M16.5 6.5l2.5 2.5M14 9l2 2" /></svg>;
+export const User = ({ size, ...p }: P) => <svg {...base(size)} {...p}><circle cx="12" cy="8" r="4" /><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0" /></svg>;
+export const Bot = ({ size, ...p }: P) => <svg {...base(size)} {...p}><rect x="4.5" y="8" width="15" height="11" rx="3" /><path d="M12 4.5V8M9 13h.01M15 13h.01M9.5 16.5h5" /></svg>;
+export const Eye = ({ size, ...p }: P) => <svg {...base(size)} {...p}><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" /><circle cx="12" cy="12" r="3" /></svg>;
