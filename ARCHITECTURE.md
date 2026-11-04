@@ -37,7 +37,10 @@ Sources: docs.switchagents.ai pages listed below, plus `github.com/sandbox-quant
 - **Act only when `payload.addressed` is true.** With `filter=all` the gate still *sees* every message, which is how the dashboard mirrors the whole room.
 - Ops: `GET /agents/{id}/ops` (discover, **don't hard-code argument names**), `POST /agents/{id}/ops/{op}` with `X-Switch-Connection-Id` and the unwrapped args → `{"result": …}`. Errors: 400/403/404/409.
 - Post without a connection: `POST /agents/{id}/message` `{room_id, content}`.
-- Set addressing: `POST /agents/{id}/ops/update_agent_detail` (value `anyone`).
+- **Addressing cannot be set by the agent itself.** `update_agent_detail` calls `refuse_managing_self` (definitions.py), and a new agent answers only its owner. The owner sets it in Switch Console agent settings or the Gateway (`PUT /gateway/agents/{id}/addressing-policy`, owner session). `python -m gate.main --probe` reads it back via `get_agent_detail` (`addressing.policy`).
+- **Ownership:** a registration key makes its minter the owner. The shared `AGENT_REGISTRATION_TOKEN` (bootstrap key) assigns a separate service account, so register the gate with a **personal** key (Gateway → API Keys), minted by the person who runs the template. Otherwise the fixer/breaker (`owner-agents`) ignore it.
+- **Ids:** `list_participants` returns agent UUIDs, but `message.sender` is a participant id (`@switch-…:server`). They are different id spaces, so the gate pins name→participant id on first sight (`gate/identity.py`) and refuses conflicts.
+- **Op signatures** (main @7e1316f): `connect_to_room(room_id, include_general_instructions)`, `post_message(body, thread_id)`, `create_room_document(name, description, instructions, content)` → `{document_id}`, `update_room_document(document_id, …, content)`, `list_participants()` → `[{id,name,type,status,alias}]`, `get_agent_detail(agent_id)`, `read_context(limit, since, before, room_id)`. Room documents cap at 1 MiB. The gate re-checks these against the live `GET /ops` at startup.
 - Participant ids (`sender`) are opaque (`@switch-user-…:server`). **Match, never parse.**
 
 ### 0.4 Unverified: confirm at runtime before relying on it
@@ -78,7 +81,7 @@ Sources: docs.switchagents.ai pages listed below, plus `github.com/sandbox-quant
 |---|---|---|---|---|
 | `firedrill-fixer` | `provider: claude` (via Switch Console) | `{$agents_dir}/firedrill-fixer`, clones incident-lab | `owner-agents` | Only the deployer and the deployer's agents (the gate) can direct it. Random room members can't push it to "just merge". |
 | `firedrill-breaker` | `provider: codex` (via Switch Console) | `{$agents_dir}/firedrill-breaker`, clones incident-lab | `owner-agents` | Same. A different model family than the fixer, so the two don't share blind spots. |
-| `firedrill-gate` | **Custom agent protocol client** (`gate/`), registered via `POST /agents`, `connection_model: always_on` | repo `gate/`, private `gate/reference/` | `anyone` (via `update_agent_detail`) | Any room member may *ask* it things. Only commands from the right sender count (see §3). |
+| `firedrill-gate` | **Custom agent protocol client** (`gate/`), registered via `POST /agents` with a personal key, `connection_model: always_on` | repo `gate/`, private `gate/reference/` | `anyone` (set by the owner in Console/Gateway) | Any room member may *ask* it things. Only commands from the right sender count (see §3). |
 
 **Why Switch is load-bearing (rubric pillar 1):** remove Switch and you lose (a) the one place a human, two vendor agents and a custom service share context; (b) the participant-identity layer the gate uses to authenticate `APPROVE`; (c) gate-only-editable room docs as the decision log; (d) addressing that stops anyone but the owner's agents from steering fixer/breaker; (e) exclusive roles that stop two agents both claiming "patch-author".
 
@@ -90,9 +93,9 @@ Plain-text commands addressed to `@firedrill-gate`, one per message, at the star
 
 | Command | Accepted only from | Gate does |
 |---|---|---|
-| `SUBMIT <branch> <sha>` | sender = fixer's participant id | Fetch, record in docket, run verify (with latest accepted attack, if any) |
-| `ATTACK <branch> <sha>` | sender = breaker's participant id | Fetch. **Validate attacks against the reference fix (R3)**: drop and name any that fail on correct code. Re-run verify on the latest fix. |
-| `APPROVE <verdict_id>` | sender ∈ approvers (default: room creator), **and** the verdict is the latest and `GREEN`, **and** its fix sha is still the head of `fix/<incident>` | Merge fix sha into `main` on the evidence remote, append sign-off + merge sha to `firedrill-verdicts`, post confirmation |
+| `SUBMIT <branch> <sha>` | fixer (pinned participant id), or an approver (flagged `manual`) | Fetch, record in docket, run verify (with latest accepted attack, if any) |
+| `ATTACK <branch> <sha>` | breaker (pinned participant id), or an approver (flagged `manual`) | Fetch. **Validate attacks against the reference fix (R3)**: drop and name any that fail on correct code. Re-run verify on the latest fix. |
+| `APPROVE <verdict_id>` | sender ∈ `FIREDRILL_APPROVERS`, **and** the verdict is the latest and `GREEN`, **and** it ran against an attack (**no attack, no sign-off**), **and** its fix sha is still the head of `fix/<incident>` | Merge fix sha into `main` on the evidence remote, append sign-off + merge sha to `firedrill-verdicts`, post confirmation |
 | `STATUS` | anyone | Post the docket summary |
 
 Anything else gets a one-line usage reply. A verdict goes stale (needs a re-run) whenever a newer fix or attack arrives.
@@ -117,7 +120,7 @@ Anything else gets a one-line usage reply. A verdict goes stale (needs a re-run)
 │   ├─ switch_client.py  courtroom.py  merger.py  telemetry.py  main.py
 │   ├─ verify.py                            # CLI + library, Codex
 │   └─ reference/<id>.patch                 # PRIVATE reference fixes, never in incident-lab
-├─ demo/scripted/<id>/{naive.patch, attack/}  # real code for replay mode, clearly labelled
+├─ demo/scripted/<id>/{naive.patch, attack/, fix.patch}  # real code for replay mode, clearly labelled
 ├─ dashboard/                               # React + Vite courtroom UI (Claude-2)
 ├─ scripts/{bootstrap_stack.sh, bootstrap_evidence.sh, register_gate.py, replay_demo.py}
 └─ docker-compose.firedrill.yml             # gate + dashboard (Claude-2)
@@ -141,7 +144,8 @@ Anything else gets a one-line usage reply. A verdict goes stale (needs a re-run)
   "started_at": "ISO-8601", "finished_at": "ISO-8601"
 }
 ```
-CLI: `python -m gate.verify --incident <id> --fix-dir <path> [--attack-dir <path>] --json`. Exit 0 = GREEN, 1 = RED, 2 = ERROR.
+CLI: `python -m gate.verify --incident <id> --fix-dir <path> [--attack-dir <path>] --json`. Exit 0 = GREEN, 1 = RED, 2 = ERROR. The JSON object goes on stdout (last line if there's other output).
+**The gate overwrites `verdict_id`, `incident`, `fix` and `attack`** (it owns numbering and the shas), so verify may omit them. If the exit code and `result` disagree, the gate records ERROR. `--attack-dir` points at `<attack checkout>/attacks/<incident>/`.
 
 ### 4.3 Telemetry (gate → dashboard), `ws://localhost:8787/telemetry`, one JSON object per frame
 ```json
@@ -149,7 +153,7 @@ CLI: `python -m gate.verify --incident <id> --fix-dir <path> [--attack-dir <path
  "room_id": "…", "seq": 123, "actor": {"id": "@switch-…", "name": "firedrill-fixer", "role": "fixer|breaker|gate|human"},
  "data": {}}
 ```
-`room_message.data = {body, thread_id, addressed}`; `check.data` = one `checks[]` entry; `verdict.data` = full verdict JSON. On connect the gate replays the current incident's events from its JSONL log (`gate/state/<room_id>.jsonl`), so a refreshed dashboard rebuilds itself. Every telemetry frame comes from a real room event or a real gate action. **No synthetic frames.**
+Producer API (frozen, implemented by Claude-2 in `gate/telemetry.py`, called by `gate/courtroom.py`): `publish(kind: str, room_id: str, seq: int | None, actor: dict, data: dict)`, sync or async. The courtroom calls it for `room_message`, `submission`, `attack`, `verdict_started`, `check`, `verdict`, `signoff`, `merge`, `rejected`, `gate_state`. `room_message.data = {body, thread_id, addressed}`; `check.data` = one `checks[]` entry; `verdict.data` = full verdict JSON. On connect the gate replays the current incident's events from its JSONL log (`gate/state/<room_id>.jsonl`), so a refreshed dashboard rebuilds itself. Every telemetry frame comes from a real room event or a real gate action. **No synthetic frames.**
 
 ### 4.4 Ports
 Switch API `8000` · Mattermost `8065` · Gateway `3000` · gate `8787` · dashboard `5173`.
@@ -179,7 +183,7 @@ Each ships a real bug, a repro test, an invariant, a **naive fix that passes the
 | `ratelimit-boundary` | Fixed-window limiter allows 2N requests across a window edge; off-by-one `>` vs `>=` | Flip comparison to `>=` | Hypothesis property test: burst N at `t=W-ε` and N at `t=W+ε` | Sliding-window log (or token bucket) | no interval of length W admits > N |
 | `path-traversal` | `GET /files/{name}` joins user input onto base dir | `name.replace("../", "")` | `....//etc/passwd`, `%2e%2e%2f`, absolute path, symlink inside base | `resolve()` + `is_relative_to(base)` + reject symlink escapes | every served file's real path ⊂ base |
 
-**Replay mode (for judges without API credits):** `scripts/replay_demo.py` posts *real* submissions from `demo/scripted/` into the room as the deployer. The gate verifies them for real in Docker. Label it "scripted submissions" in the UI and README. **Live mode** uses the real Claude and Codex agents.
+**Replay mode (for judges without API credits):** `scripts/replay_demo.py` pushes `naive.patch` → `attack/` → `fix.patch` from `demo/scripted/<id>/` and posts SUBMIT/ATTACK into the Mattermost channel as the seeded human user. The gate accepts them because that user is an approver, and flags them `manual`. The gate verifies them for real in Docker. Label it "scripted submissions" in the UI and README. **Live mode** uses the real Claude and Codex agents.
 
 ---
 

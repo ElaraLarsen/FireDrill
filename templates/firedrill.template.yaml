@@ -136,9 +136,11 @@ room:
         on the latest attack/ branch, and the incident's invariant check.
     R3. An attack counts only if it also passes against the reference fix.
         Attacks that fail on correct code are thrown out and named.
-    R4. After GREEN, the gate asks for sign-off. Only a message from
-        {$creator} that reads exactly "APPROVE <verdict id>" in the verdict
-        thread merges. Anything else is discussion.
+    R4. No attack, no sign-off: a GREEN verdict that has not faced an
+        attack/ branch cannot be approved. After a GREEN verdict that has,
+        the gate asks for sign-off. Only a configured approver ({$creator}
+        by default) addressing {gate} with exactly "APPROVE <verdict id>"
+        for the latest verdict merges. Anything else is discussion.
     R5. The gate's room document "firedrill-verdicts" is the decision log.
         Only the gate can edit it. Every verdict, attack, rejection and
         sign-off is appended there with commit shas.

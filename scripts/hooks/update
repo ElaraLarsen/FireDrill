@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# FireDrill evidence-remote guard (git `update` hook).
+#
+# Installed into the bare evidence repo by scripts/bootstrap_evidence.sh.
+# git runs it once per ref being pushed:  update <refname> <old-sha> <new-sha>
+#
+#   refs/heads/fix/<incident>     anyone may push (the fixer)
+#   refs/heads/attack/<incident>  anyone may push (the breaker)
+#   refs/heads/main               only a pusher whose FIREDRILL_GATE_KEY hashes
+#                                 to the stored key hash, fast-forward only,
+#                                 never deleted
+#   anything else                 rejected
+#
+# Honest scope: this is local-demo enforcement. Anyone with filesystem write
+# access to the bare repo can bypass a hook. The production equivalent is a
+# protected branch whose only allowed pusher is the gate's GitHub App.
+set -euo pipefail
+
+ref="$1"
+old="$2"
+new="$3"
+zero="0000000000000000000000000000000000000000"
+# Read only from the remote's own config, never from the pusher's environment:
+# a pusher could otherwise point the hook at a hash of a key they chose.
+keyhash_file="$(git config --get firedrill.keyhashfile || echo /tmp/firedrill/gate.keyhash)"
+
+deny() { echo "firedrill: REJECTED $ref: $*" >&2; exit 1; }
+
+case "$ref" in
+  refs/heads/fix/*|refs/heads/attack/*)
+    exit 0
+    ;;
+  refs/heads/main)
+    [ "$new" = "$zero" ] && deny "main cannot be deleted"
+    [ -f "$keyhash_file" ] || deny "no gate key hash at $keyhash_file"
+    [ -n "${FIREDRILL_GATE_KEY:-}" ] || deny "only firedrill-gate may update main"
+    got="$(printf '%s' "$FIREDRILL_GATE_KEY" | sha256sum | cut -d' ' -f1)"
+    want="$(tr -d '[:space:]' < "$keyhash_file")"
+    [ "$got" = "$want" ] || deny "only firedrill-gate may update main (bad key)"
+    if [ "$old" != "$zero" ] && ! git merge-base --is-ancestor "$old" "$new"; then
+      deny "non-fast-forward update of main"
+    fi
+    exit 0
+    ;;
+  *)
+    deny "only fix/* and attack/* branches may be pushed here"
+    ;;
+esac

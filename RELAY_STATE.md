@@ -1,7 +1,7 @@
 # RELAY_STATE — FireDrill live ledger
 
 ## Last Active Agent
-**Claude-1 (Lead Architect, bootstrap session)**: 2026-11-04 ~09:50 IST
+**Claude-1 (Switch layer)**: 2026-11-04 ~10:15 IST
 
 ## Winning Project
 **FireDrill: an adversarial hotfix courtroom in chat.**
@@ -20,26 +20,56 @@ Hook: Switch's own incident-response docs admit human approval is "instructions 
 | firedrill-fixer | `{$agents_dir}/firedrill-fixer` (clones incident-lab) | template |
 | firedrill-breaker | `{$agents_dir}/firedrill-breaker` (clones incident-lab) | template |
 | firedrill-gate | this repo `gate/` (private `gate/reference/`) | Claude-1 + Codex |
-| evidence remote | `/tmp/firedrill/evidence.git` | Claude-1 script |
+| evidence remote | `/tmp/firedrill/evidence.git` | `scripts/bootstrap_evidence.sh` |
 
-| Builder (this repo) | Lane |
-|---|---|
-| Claude-1 | Switch layer: template, gate client/courtroom/merger, bootstrap scripts |
-| Codex | incident-lab, 3 scenarios, `gate/verify.py`, reference + scripted patches |
-| Claude-2 | dashboard, `gate/telemetry.py`, compose, README/blog/demo script |
+| Builder (this repo) | Person | Lane |
+|---|---|---|
+| Claude-1 | team lead | Switch layer: template, gate client/courtroom/merger, bootstrap scripts |
+| Claude-2 | Teammate 2 | dashboard, `gate/telemetry.py`, compose, README/blog/demo script |
+| Codex | Teammate 3 | incident-lab, 3 scenarios, `gate/verify.py`, reference + scripted patches |
 
 ## Completed Milestones
 - [x] Switch docs + source reviewed; vocabulary corrected (ARCHITECTURE §0).
 - [x] Winner selected (FireDrill, sharpened).
 - [x] CLAUDE.md / AGENTS.md / RELAY_STATE.md / ARCHITECTURE.md written.
-- [x] Room template drafted; hand-checked against `template_lint.py` and `ParamSpec`. **Not yet run through the linter or a live server.**
-- [ ] Phase 2 (below)
+- [x] **Claude-1 Phase 2 lane built and unit-tested** (see below). Not yet run against a live Switch server.
+- [ ] Codex lane (incident-lab, verify)
+- [ ] Claude-2 lane (telemetry, dashboard)
+- [ ] First live end-to-end drill
+
+## Completed in This Turn (Claude-1)
+Files:
+- `gate/switch_client.py`: WS connect (`/agents/{id}/connection/ws`, scope=all, filter=all), persistent connection id, `connection_state`, ping→pong `{"type":"pong","cursor":n}`, resume via `start_from`, `refused`/`evicted taken_over` are fatal, `GET /ops` discovery + schema check, `op()`, `use_room()`.
+- `gate/courtroom.py`: SUBMIT/ATTACK/APPROVE/STATUS, verdict numbering, calls `gate.verify` CLI, gate-owned room docs `firedrill-docket` + `firedrill-verdicts`, telemetry adapter onto `gate.telemetry.publish`.
+- `gate/commands.py` (grammar), `gate/identity.py` (name→participant-id pinning), `gate/merger.py` (worktrees + guarded merge), `gate/config.py`, `gate/main.py` (`--probe`).
+- `scripts/bootstrap_stack.sh` (Switch 0.31.0 standalone compose, secrets, health wait), `scripts/register_gate.py`, `scripts/bootstrap_evidence.sh` + `scripts/hooks/update`, `scripts/replay_demo.py`.
+- `.env.example`, `gate/requirements.txt`, `requirements-dev.txt`, `pytest.ini`, `tests/*`.
+- Template: rule R4 now says "no attack, no sign-off" and names the configured approvers.
+
+Verification (run here, real output):
+```
+$ python3 -m pytest -q
+.................                                                        [100%]
+17 passed in 3.21s
+```
+- `tests/test_evidence_hook.py`: real `git push` against a remote built by `bootstrap_evidence.sh`. main is rejected without the key, with a wrong key, with a swapped keyhash file, on non-fast-forward and on delete. fix/* and attack/* are open, other refs rejected, bootstrap is idempotent.
+- `tests/test_switch_client.py`: against a local WS server using Switch's documented frame shapes. Checks pong + cursor, dispatch, reconnect on the same connection id with `start_from`, fatal 401 / `taken_over`, ops schema drift, and `op(..., name=...)`.
+- `tests/test_courtroom_flow.py`: full drill with real git merges through the guarded hook. naive GREEN can't be approved → attack → RED → impostor/role/stale-sha rejections → root-cause GREEN → stale-push rejection → APPROVE merges → decision log. Uses `tests/fake_verify.py` (stand-in for Codex's CLI, **test only**) and a recording stand-in for Switch.
+
+Bugs the tests caught and fixed:
+1. `op("create_room_document", name=...)` collided with `op(self, name, ...)` and would have crashed live. `op` now takes a positional-only `op_name`.
+2. The update hook trusted `FIREDRILL_KEYHASH_FILE` from the pusher's env, so a fixer could swap in their own key hash. It now reads only the remote's git config.
+3. A naive fix is GREEN before any attack, so a human could approve it unattacked. New rule: **no attack, no sign-off.**
 
 ## Current System State
-- Repo: initialized, nothing runnable yet. No containers, no ports in use.
-- Switch stack: **not started**. `SWITCH_VERSION` not yet chosen.
-- Reference checked: `sandbox-quantum/switch` @ `7e1316f` (2026-11-04).
-- Open unknowns: ARCHITECTURE §0.4 (op argument names, username→participant id mapping, thread replies, version pin).
+- Nothing running. No live Switch server has been reached yet: this workspace's network blocks `ghcr.io`, so the Switch images can't be pulled here.
+- GitHub repo: being created as `ElaraLarsen/firedrill` (public). All commits are authored as ElaraLarsen.
+- Pinned `SWITCH_VERSION=0.31.0` (latest stable tag `switch-v0.31.0`).
+- Open unknowns (close with `python -m gate.main --probe` on a live server; paste the output here):
+  1. Live op schemas match `EXPECTED_OPS` (source says yes at main @7e1316f; 0.31.0 unconfirmed).
+  2. `sender_name` for agents equals their agent name, and for Mattermost humans equals their username. Identity pinning and `FIREDRILL_APPROVERS` depend on this.
+  3. Whether `post_message(thread_id=…)` threads in Mattermost. The gate falls back to top-level on 400.
+  4. Whether the seeded Mattermost `user` is the `{$creator}` when the template is run from Console. `replay_demo.py` assumes it can see the channel.
 
 ## Decisions Log
 - D1 (2026-11-04, Claude-1): Transport = WebSocket, not SSE (SSE deprecated since 0.30.0; verified in `handlers.py`).
@@ -48,30 +78,31 @@ Hook: Switch's own incident-response docs admit human approval is "instructions 
 - D4: Verdicts/docket are room docs created by the gate, so only the gate can edit them.
 - D5: Reference fixes live in `gate/reference/`, never in the incident-lab repo the agents clone.
 - D6: Fixer = Claude, breaker = Codex. Different vendors so they don't share blind spots.
+- D7: Gate must be registered with a **personal** Gateway API key from the template runner (bootstrap token → different owner → fixer/breaker ignore it).
+- D8: Gate addressing is set by the owner in Console/Gateway; agents can't change their own (`refuse_managing_self`). Gate preflight refuses to start if it's `owner_only`.
+- D9: **No attack, no sign-off.** APPROVE needs the latest GREEN verdict to have run against an attack/ branch.
+- D10: Approvers may also SUBMIT/ATTACK (flagged `manual`). That's what makes scripted replay possible without pretending to be the agents.
+- D11: The gate assigns `verdict_id` and fills `fix`/`attack`/`incident`; verify needn't.
+- D12: Commits are authored by the human team only (no AI co-author trailers), per the team lead.
 
-## Next Handoff Queue (Phase 2, parallel; interfaces frozen in ARCHITECTURE §4)
+## Next Handoff Queue
 
-### Claude-1: Switch layer
-1. `scripts/bootstrap_stack.sh`: list tags (`oras repo tags ghcr.io/sandbox-quantum/standalone-compose`), pin `SWITCH_VERSION` ≥ 0.31.0 in `.env.example`, pull the compose artifact, run `deploy/local/generate-env-secrets.sh`-equivalent, `docker compose --profile collab --profile gateway up -d`, wait on `curl :8000/health`.
-2. `scripts/register_gate.py`: `POST /agents` (registration token from Gateway) with `connection_model: always_on`; persist `{id, api_key}` to `.env`; then `update_agent_detail` addressing `anyone`. Handle 409.
-3. `gate/switch_client.py`: WS connect (UUID connection id persisted in `gate/state/connection_id`), `connection_state` parse, pong `{"type":"pong","cursor":n}`, reconnect with the same id, `gap` handling, `GET /ops` discovery. **Log every op's input_schema into RELAY_STATE §Current System State** (closes unknown #1).
-4. `gate/courtroom.py`: parse `SUBMIT/ATTACK/APPROVE/STATUS`; authenticate by sender participant id (fixer/breaker ids from `list_participants`, approver = creator); call `gate.verify` (Codex's contract); post verdicts; create + append `firedrill-verdicts` and `firedrill-docket` room docs.
-5. `gate/merger.py` + `scripts/bootstrap_evidence.sh`: bare repo + `update` hook that guards `refs/heads/main` with the gate key hash.
-6. Upload the template to the live server; paste lint output here.
-**Done when:** in Mattermost, `@firedrill-gate STATUS` gets a real reply, and `firedrill-verdicts` exists and is edited only by the gate.
+### Claude-1 (team lead's machine; needs Docker + Switch Console)
+1. `scripts/bootstrap_stack.sh` → Console: add server `http://localhost:8000`, sign in to Claude Code + Codex.
+2. Gateway (`:3000`, admin creds in `.env`) → API Keys → new key → `.env` `FIREDRILL_REGISTRATION_TOKEN`. Mint it **as the same user** who will run the template.
+3. `python scripts/register_gate.py` → Console: set firedrill-gate addressing to **Anyone**.
+4. `pip install -r gate/requirements.txt && python -m gate.main --probe` → paste the output here (closes unknowns 1–2).
+5. Upload `templates/firedrill.template.yaml` in Console → Templates; paste lint warnings here.
+6. Once Codex's incident-lab is pushed: `scripts/bootstrap_evidence.sh <lab repo>`, `python -m gate.main`, run the template, and drive one incident live.
 
-### Codex: incident lab + verify engine
-1. `incident-lab/app`: FastAPI + SQLite service with the 3 bugs in ARCHITECTURE §6 (`/charges`, rate limiter, `/files/{name}`).
-2. Per incident: `brief.md`, `repro_test.py` (fails on buggy code), `invariant.py`.
-3. `gate/reference/<id>.patch` (correct fix), `demo/scripted/<id>/naive.patch` (passes repro, wrong), `demo/scripted/<id>/attack/` (hostile tests: fail on naive, pass on reference).
-4. `gate/verify.py`: CLI + library per ARCHITECTURE §4.2. Runs in `docker run --rm --network none` (python:3.12-slim pinned by digest), mounts read-only. Validates attacks against the reference fix and discards invalid ones. Exit codes 0/1/2.
-5. `tests/test_verify_matrix.py`: for each incident assert buggy → RED, naive (no attack) → GREEN, naive + attack → RED, reference + attack → GREEN. **Paste the real pytest output here.**
-**Done when:** that matrix passes locally, and `python -m gate.verify ... --json` emits schema-valid JSON.
+### Codex: incident lab + verify engine (unchanged; see ARCHITECTURE §4.2 and §6)
+1. `incident-lab/` service + 3 incidents (`brief.md`, `repro_test.py`, `invariant.py`).
+2. `gate/reference/<id>.patch`; `demo/scripted/<id>/naive.patch`, `demo/scripted/<id>/attack/test_*.py`, **and `demo/scripted/<id>/fix.patch`** (a correct fix written independently of the reference; `replay_demo.py` needs it).
+3. `gate/verify.py` CLI exactly: `python -m gate.verify --incident <id> --fix-dir <path> [--attack-dir <path>] --json`; JSON on stdout; exit 0/1/2 matching `result`. The gate fills `verdict_id`/`fix`/`attack`. Patches must apply with `git apply` on the lab repo's root.
+4. The lab repo's root is the contents of `incident-lab/` (so `incidents/<id>/brief.md` sits at the root). The gate reads the brief from there.
+5. `tests/test_verify_matrix.py` (buggy RED, naive GREEN, naive+attack RED, reference+attack GREEN). Paste the real output here. `tests/fake_verify.py` is Claude-1's test stand-in: don't extend it, replace its use when you're ready.
 
-### Claude-2: presentation layer
-1. `gate/telemetry.py`: FastAPI WS `/telemetry` on :8787 per ARCHITECTURE §4.3; JSONL append and replay on connect; a `publish(kind, room_id, seq, actor, data)` function Claude-1's courtroom calls.
-2. `dashboard/`: React + Vite + TS, four panels per ARCHITECTURE §7. Develop against telemetry recorded from Codex's **real** verify runs (record them to `dashboard/fixtures/recorded-*.jsonl` once Codex's matrix passes, and label them "recorded"). Until then, build against the schema with unit tests, no invented data.
-3. `docker-compose.firedrill.yml`: gate + dashboard services; `.env.example`.
-4. `README.md`: the 10-second pitch at the top, a GIF slot, the 4-command bring-up, honest limits (local git-hook enforcement vs. prod branch protection; amd64 Mattermost; Console required).
-5. `docs/demo-script.md` (3-minute video beat sheet: incident → naive patch → breaker attack → RED → real fix → GREEN → APPROVE → merge) and a `docs/blog.md` outline for the Best Blog side track.
-**Done when:** the dashboard renders a recorded real run end to end and `docker compose -f docker-compose.firedrill.yml config` validates.
+### Claude-2: presentation layer (unchanged; see ARCHITECTURE §4.3 and §7)
+1. `gate/telemetry.py` exposing `publish(kind, room_id, seq, actor, data)` (sync or async; the courtroom awaits it if it's a coroutine), plus the WS server on :8787 and JSONL replay. The courtroom already calls it: see `Telemetry` in `gate/courtroom.py` for every `kind` it emits.
+2. Run it in the same process as the gate: start your server from `gate/main.py`'s `run()` via a hook you add (coordinate in the Decisions Log), or in a sibling task. Your call, just log it.
+3. Dashboard, compose, README, demo script and blog as listed in ARCHITECTURE §7–8.
