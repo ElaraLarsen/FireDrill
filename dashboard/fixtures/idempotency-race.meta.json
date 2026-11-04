@@ -1,7 +1,7 @@
 {
-  "title": "Courtroom flow with a test verifier: idempotency-race, merged",
+  "title": "Full courtroom drill, real verifier: idempotency-race",
   "incident": "idempotency-race",
   "scripted": true,
-  "verifier": "test-stand-in",
-  "provenance": "Recorded from tests/test_telemetry_fixture.py. Real courtroom code, real guarded git merge and real gate.telemetry frames; the verify engine is tests/fake_verify.py (a test stand-in, runner image 'test-stand-in'), not the container verifier. Participant ids are test ids."
+  "verifier": "gate.verify",
+  "provenance": "Full courtroom drill. Real: gate/courtroom.py, gate/verify.py (local pytest subprocesses, network inherited, not a sandbox), and a git merge through the evidence remote's update hook, which checks the gate key. Scripted: the Switch room is a recording stand-in, and firedrill-fixer, firedrill-breaker and creator are scripted participants posting demo/scripted/idempotency-race/ patches and tests; no live Claude, Codex or Switch took part. Participant ids are test ids."
 }

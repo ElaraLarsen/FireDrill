@@ -81,8 +81,8 @@ def test_rest_health_incidents_and_replay(telemetry_state, tmp_path, monkeypatch
     monkeypatch.setenv("FIREDRILL_FIXTURES_DIR", str(tmp_path / "no-fixtures"))
 
     async def seed():
-        await telemetry.publish("gate_state", ROOM, None, {"role": "gate"}, {"state": "docket_open", "incident": "path-traversal"})
-        await telemetry.publish("verdict", ROOM, None, {"role": "gate"}, {"verdict_id": "V-path-traversal-001", "incident": "path-traversal", "result": "RED"})
+        await telemetry.publish("gate_state", ROOM, None, {"role": "gate"}, {"state": "docket_open", "incident": "pagination-cursor"})
+        await telemetry.publish("verdict", ROOM, None, {"role": "gate"}, {"verdict_id": "V-pagination-cursor-001", "incident": "pagination-cursor", "result": "RED"})
 
     asyncio.run(seed())
     c = TestClient(telemetry.app)
@@ -90,9 +90,9 @@ def test_rest_health_incidents_and_replay(telemetry_state, tmp_path, monkeypatch
     assert h["ok"] is True and h["latest_room"] == ROOM
 
     runs = c.get("/api/incidents").json()["runs"]
-    assert runs[0]["incident"] == "path-traversal" and runs[0]["verdicts"] == ["RED"] and runs[0]["source"] == "recorded"
+    assert runs[0]["incident"] == "pagination-cursor" and runs[0]["verdicts"] == ["RED"] and runs[0]["source"] == "recorded"
 
-    r = c.post("/api/replay/path-traversal")
+    r = c.post("/api/replay/pagination-cursor")
     assert r.status_code == 200
     body = r.json()
     assert body["replay"] is True and [f["kind"] for f in body["frames_data"]] == ["gate_state", "verdict"]

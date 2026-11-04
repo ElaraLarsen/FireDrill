@@ -1,7 +1,7 @@
 # RELAY_STATE — FireDrill live ledger
 
 ## Last Active Agent
-**Presentation lane (Teammate 2)**: 2026-11-04 ~11:40 IST. Previous: Codex Lane 2, 11:11 IST.
+**Presentation lane (Teammate 2)**: 2026-11-04 ~12:00 IST, phase 4 (cross-lane edits authorised by the user, see D19). Before that: Codex Lane 2, 11:11 IST.
 
 ## Winning Project
 **FireDrill: an adversarial hotfix courtroom in chat.**
@@ -37,7 +37,24 @@ Hook: Switch's own incident-response docs admit human approval is "instructions 
 - [x] Presentation lane built and tested (telemetry, dashboard, compose, README, demo script, blog). Compose unrun (no Docker daemon); no live Switch yet.
 - [ ] First live end-to-end drill
 
-## Completed in This Turn (presentation lane, phase 3B)
+## Completed in This Turn (presentation lane, phase 4)
+The user explicitly authorised edits across lanes for these items (D19).
+1. **Incident names:** `gate/config.py::KNOWN_INCIDENTS`, `templates/firedrill.template.yaml` (enum), `.env.example`, ARCHITECTURE §6 row, and tests now say `pagination-cursor`; `path-traversal` is gone from code, template and docs (the string remains in history in RELAY_STATE). Courtroom/template wording "clean container" -> "fresh workspace".
+2. **Path scrub:** `gate/verify.py::_scrub` replaces workspace, repo, interpreter, temp and home directories and any `C:\Users\<name>`, `/Users/<name>`, `/home/<name>`, `/tmp`, `/var/folders` path with `<workspace> <repo> <python> <tmp> <home>` in all check output and notes. `tests/test_verify_scrub.py` (9 tests). All fixtures are regenerated; a test fails if any fixture or recording contains a host path.
+3. **Full courtroom recordings:** `tests/test_courtroom_recordings.py` drives the real `gate/courtroom.py`, real `gate/verify.py`, a real evidence remote seeded from `incident-lab/`, and `demo/scripted/<id>/{naive.patch,attack/,fix.patch}`: docket_open+brief -> naive SUBMIT (GREEN on repro only) -> early APPROVE refused -> ATTACK (R3 discard, RED) -> real fix SUBMIT (GREEN) -> non-approver APPROVE refused -> approver APPROVE -> signoff -> guarded merge. Output: `dashboard/fixtures/<incident>.jsonl` + `.meta.json` (48 / 60 / 56 frames). Participants (`firedrill-fixer`, `firedrill-breaker`, `creator`, `guest`) and the Switch room are scripted stand-ins and labelled so. Removed: `dashboard/fixtures/recorded-*` (verify-only; superseded) and the test-verifier fixture. `tests/conftest.py` gained `build_evidence(tmp_path, lab)`. `tests/test_verify_matrix.py` recorder now writes to `gate/state/verify-recordings/` (env `FIREDRILL_RECORD_DIR`), not to the dashboard. `dashboard/public/` is not used (fixtures are bundled by Vite), so nothing was added there.
+4. **`scripts/bootstrap_evidence.sh`:** `setenv` now writes through awk `ENVIRON` (sed ate backslashes in `C:\Users\...`), `getenv` strips `\r`. New `tests/test_evidence_hook.py::test_bootstrap_keeps_backslashes_in_env_values` uses backslash-bearing values; it FAILS on the old script (observed: path became `C:Userswingate.keyhash`) and passes on the new one. Not run on Windows Git Bash.
+5. **Dashboard:** `docs/dashboard.jpg` retaken (3200x1800, headless Chrome, `?replay=idempotency-race&step=end`) showing the real verifier checks, the R3 discard and MERGED. Also: room mirror renders `**bold**` and `code`; sign-off text "fresh workspace"; vitest rewritten for the three recordings (15 tests).
+
+Verification (run here, real output; macOS arm64, Python 3.12.14, real pytest-asyncio):
+```
+$ .venv/bin/python -m pytest -q -p no:cacheprovider
+66 passed, 1 warning in 150.91s (0:02:30)
+$ cd dashboard && npx vitest run   -> Tests 15 passed (15)
+$ cd dashboard && npm run build    -> ✓ built in 57ms
+```
+Not verified: Windows Git Bash (item 4); `docker compose up`; the gate against a live Switch server; a Vercel deploy.
+
+## Previous turn (presentation lane, phase 3B)
 Pulled `origin/main` (`0eb8f1c`, Codex) by rebase, then:
 - Dashboard (`dashboard/src/*`): incident tabs now `idempotency-race | ratelimit-boundary | pagination-cursor`; verify-only recordings render without room traffic (candidate panel from `state` + `candidate_sha`, "attack faced" is read from attack checks because those frames carry no `attack` ref, stamp/docket labelled baseline / naive fix / naive fix + attack / reference fix + attack); sign-off box says "This recording stops at the verdict: no human sign-off or merge was recorded" when there is no room traffic; runs with `verifier: test-stand-in` sort after real ones; replay pacing by frame kind; `?replay=<run id>&step=<n|end>` deep links; long check names truncate.
 - Static hosting: `dashboard/vercel.json`, `base: "./"` in `vite.config.ts`, and replay-only mode (`static demo · replay only`) when the page isn't on localhost and `VITE_TELEMETRY_URL` is unset. Not deployed to anything.
@@ -138,8 +155,8 @@ Bugs the tests caught and fixed:
 ## Current System State
 - Local incident service and all three patch/attack scenarios run on Python 3.12.14; no persistent lab server or container was started. Tests use ephemeral databases and loopback-enabled TestClient. Local `.venv/` contains dependencies and is gitignored.
 - Lane 2's local subprocess runner replaces Docker execution (D16). `Dockerfile.gate` now packages `incident-lab/` and pytest and no longer assumes sibling Docker (unbuilt: no daemon here). Live Switch has not been verified.
-- `gate/config.py` and template enum still name `path-traversal`; Claude-1 must align them to `pagination-cursor`. Until then use `FIREDRILL_INCIDENTS=idempotency-race,ratelimit-boundary,pagination-cursor` for the gate and update the template before using that third room.
-- Windows `scripts/bootstrap_evidence.sh` idempotency regression remains failing; see exact output above and Claude-1 handoff. Existing presentation stand-in-verifier fixture is retained separately from new real local verification recordings.
+- Incident ids are aligned to `pagination-cursor` in `gate/config.py` and the template (phase 4). The template has still not been linted by a real Switch server.
+- Windows `scripts/bootstrap_evidence.sh` idempotency: root cause (sed mangling backslashes) fixed in phase 4 and covered by a failing-before/passing-after test on macOS; still unconfirmed on Windows Git Bash. Existing presentation stand-in-verifier fixture is retained separately from new real local verification recordings.
 - Nothing running (the dev servers used for checking were stopped). No live Switch server has been reached yet: this workspace's network blocks `ghcr.io`, so the Switch images can't be pulled here.
 - GitHub repo exists: `ElaraLarsen/firedrill` (public). Codex uses the configured human Git identity (`Kaustubh-Negi-01`); no AI co-author trailer.
 - Pinned `SWITCH_VERSION=0.31.0` (latest stable tag `switch-v0.31.0`).
@@ -151,7 +168,9 @@ Bugs the tests caught and fixed:
 
 ## Decisions Log
 - D16 (2026-11-04, Codex; explicit Lane 2 handoff): third incident is `pagination-cursor`, superseding §6's `path-traversal`. Verify uses fresh local subprocess workspaces (`python -m pytest`), not Docker; runner metadata says network is inherited, not isolated. Claude-1 must update configured incident names and container wording in their lane.
-- D18 (2026-11-04, presentation lane): dashboard incident list follows D16 (`pagination-cursor`). `gate/telemetry.py` still reports `KNOWN_INCIDENTS` from `gate/config.py` (still `path-traversal`) in `/api/incidents`; it is display-only. Claude-1 fixes it with the config alignment.
+- D18 (2026-11-04, presentation lane): dashboard incident list follows D16 (`pagination-cursor`). Resolved by D19: `gate/config.py` now matches.
+- D19 (2026-11-04, presentation lane; user-authorised cross-lane edits): touched `gate/config.py`, `templates/firedrill.template.yaml`, `.env.example`, `gate/courtroom.py` (message wording), `gate/verify.py` (path scrub only; no verdict logic changed), `scripts/bootstrap_evidence.sh` (setenv/getenv), `tests/conftest.py`, `tests/test_verify_matrix.py` (recording destination), `demo/scripted/README.md`, ARCHITECTURE §6 row.
+- D20: the dashboard replays one full courtroom recording per incident (real verifier, scripted participants). The earlier verify-only `recorded-*` fixtures and the test-verifier fixture were removed as superseded.
 - D17 (2026-11-04, Codex; explicit Lane 2 handoff): write only `dashboard/fixtures/recorded-*` JSONL and provenance metadata in the presentation lane, recording actual verification actions, labelled scripted; no invented room messages, signoffs, or merges.
 - D1 (2026-11-04, Claude-1): Transport = WebSocket, not SSE (SSE deprecated since 0.30.0; verified in `handlers.py`).
 - D2: Don't use Switch task ops (docs: "not ready for use").
@@ -172,7 +191,7 @@ Bugs the tests caught and fixed:
 ## Next Handoff Queue
 
 ### Claude-1 (team lead's machine; needs Docker + Switch Console)
-0. Lane 2 is ready. Align `gate/config.py::KNOWN_INCIDENTS`, template enum, and architecture §6 from `path-traversal` to `pagination-cursor` (explicit user override D16). Adjust courtroom wording from clean container to fresh local subprocess workspace. Publish the contents of `incident-lab/` as the lab repo, excluding private `gate/reference/`. The verifier consumes a lab-root checkout and `attacks/<id>/`, exactly as replay_demo.py expects. Investigate `tests/test_evidence_hook.py::test_bootstrap_is_idempotent` on Windows/Git Bash: reloading Windows paths from `test.env` makes a seeded remote appear absent. Do not claim this regression passed.
+0. (Phase 4 did the incident-name alignment and the courtroom wording; skip those.) Publish the contents of `incident-lab/` as the lab repo, excluding private `gate/reference/`. The verifier consumes a lab-root checkout and `attacks/<id>/`, exactly as replay_demo.py expects. Re-run `tests/test_evidence_hook.py` on Windows/Git Bash and report whether the awk-based `setenv` fix holds (not run there yet).
 1. `scripts/bootstrap_stack.sh` → Console: add server `http://localhost:8000`, sign in to Claude Code + Codex.
 2. Gateway (`:3000`, admin creds in `.env`) → API Keys → new key → `.env` `FIREDRILL_REGISTRATION_TOKEN`. Mint it **as the same user** who will run the template.
 3. `python scripts/register_gate.py` → Console: set firedrill-gate addressing to **Anyone**.
@@ -181,7 +200,7 @@ Bugs the tests caught and fixed:
 6. Once Codex's incident-lab is pushed: `scripts/bootstrap_evidence.sh <lab repo>`, `python -m gate.main`, run the template, and drive one incident live.
 
 ### Codex: incident lab + verify engine (complete)
-0. Heads-up from the presentation lane: the `output_tail` fields in `dashboard/fixtures/recorded-*.jsonl` contain the recording machine's absolute Windows paths (`C:\\Users\\Kaustubh\\Documents\\firedrill\\.venv...`). Consider normalising them in the recorder before the repo is shown to judges.
+0. Resolved in phase 4: `gate/verify.py` now scrubs host paths and the recordings were regenerated; the old `recorded-*.jsonl` files, which carried the recording machine's absolute paths, are deleted.
 1. Install `incident-lab/requirements.txt` plus `requirements-dev.txt` into Python 3.12; run `python -m pytest tests/test_verify_matrix.py -q`. Restricted Windows sandbox requires loopback-enabled execution for asyncio/TestClient.
 2. All nine patches and 12 requested matrix cells are covered. Regenerate only the new local recordings with `FIREDRILL_RECORD_FIXTURES=1`; `FIREDRILL_RECORD_FIXTURE` (singular) belongs to the old presentation stand-in fixture, not these recordings.
 3. After other lanes align config and container packaging, help run one real Switch courtroom with this verifier. Keep `tests/fake_verify.py` confined to its existing isolated courtroom unit tests; do not report its fixture as a real verify run.

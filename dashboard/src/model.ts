@@ -221,7 +221,7 @@ export function signOff(s: State): SignOff {
   if (!v) return { phase: "no_attack", text: "No attack, no sign-off." };
   if (v.merged) return { phase: "merged", text: `MERGED ${short(v.merged.main_sha)} (Gate Key Verified)` };
   if (v.signoff) return { phase: "signed", text: `Signed off by ${v.signoff.by}. Gate is merging…` };
-  if (v.result === "PENDING") return { phase: "blocked", text: "Verification running in a clean container." };
+  if (v.result === "PENDING") return { phase: "blocked", text: "Verification running in a fresh workspace." };
   if (v.result !== "GREEN") return { phase: "blocked", text: `${v.id} is ${v.result}. Sign-off is locked until a fix is GREEN.` };
   if (!faced(v)) return { phase: "no_attack", text: "No attack, no sign-off." };
   const who = s.approvers.length ? s.approvers.map((a) => `@${a}`).join(" / ") : "a named approver";

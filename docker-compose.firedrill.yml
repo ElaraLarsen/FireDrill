@@ -20,8 +20,6 @@ services:
       FIREDRILL_TELEMETRY_HOST: 0.0.0.0
       FIREDRILL_STATE_DIR: /app/gate/state
       FIREDRILL_FIXTURES_DIR: /app/dashboard/fixtures
-      # gate/config.py still lists path-traversal; the lab's third incident is pagination-cursor (D16).
-      FIREDRILL_INCIDENTS: idempotency-race,ratelimit-boundary,pagination-cursor
     ports:
       - "8787:8787"
     extra_hosts:

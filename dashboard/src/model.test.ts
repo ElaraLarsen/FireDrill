@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { attackMatrix, latest, replay, signOff, stamp } from "./model";
 import { fixtureRuns } from "./fixtures";
 
-describe("replaying the recorded idempotency-race drill", () => {
+describe("replaying the idempotency-race drill", () => {
   const run = fixtureRuns().find((r) => r.id === "idempotency-race")!;
 
   it("loads the committed fixture", () => {
@@ -44,39 +44,74 @@ describe("replaying the recorded idempotency-race drill", () => {
   });
 });
 
-describe("real gate.verify recordings (recorded-<incident>)", () => {
+describe("full courtroom recordings (real gate.verify, scripted participants)", () => {
   const ids = ["idempotency-race", "ratelimit-boundary", "pagination-cursor"];
   const runs = fixtureRuns();
 
-  it("ships a verify recording for each of the three incidents, ahead of the stand-in fixture", () => {
-    for (const id of ids) expect(runs.find((r) => r.id === `recorded-${id}`)).toBeTruthy();
-    expect(runs[runs.length - 1].verifier).toBe("test-stand-in");
+  it("ships one recording per incident, all from the real verifier", () => {
+    expect(runs.map((r) => r.id).sort()).toEqual([...ids].sort());
+    for (const r of runs) {
+      expect(r.verifier).toBe("gate.verify");
+      expect(r.scripted).toBe(true);
+      expect(r.provenance).toMatch(/stand-in/);
+    }
   });
 
   for (const id of ids) {
-    it(`${id}: baseline RED -> naive GREEN on repro only -> RED by attack -> GREEN, with an R3 discard`, () => {
-      const run = runs.find((r) => r.id === `recorded-${id}`)!;
+    it(`${id}: GREEN on repro only -> refused -> RED by attack -> GREEN -> refused -> signed off -> MERGED`, () => {
+      const run = runs.find((r) => r.id === id)!;
       const labels: string[] = [];
       for (let i = 1; i <= run.frames.length; i++) {
-        if (run.frames[i - 1].kind !== "verdict") continue;
-        labels.push(stamp(replay(run.frames, i)).label);
+        const k = run.frames[i - 1].kind;
+        if (k === "verdict" || k === "merge") labels.push(stamp(replay(run.frames, i)).label);
       }
       expect(labels).toEqual([
-        "RED — REPRO FAILED",
         "GREEN ON REPRO ONLY — NO ATTACK YET",
         "RED — BROKEN BY RED-TEAM",
         "GREEN — SURVIVED ALL ATTACKS",
+        "MERGED TO MAIN",
       ]);
 
-      const s = replay(run.frames, run.frames.length);
-      expect(s.incident).toBe(id);
-      const rows = attackMatrix(s.verdicts[3]);
-      expect(rows.some((r) => r.discarded)).toBe(true);
-      expect(rows.some((r) => r.reference === "pass" && r.fix === "pass")).toBe(true);
-      // The recording stops at the verdict: nothing is signed off or merged, and the UI must not say it was.
-      expect(s.verdicts.every((v) => !v.signoff && !v.merged)).toBe(true);
-      expect(signOff(s).phase).toBe("awaiting");
-      expect(s.messages).toHaveLength(0);
+      const end = replay(run.frames, run.frames.length);
+      expect(end.incident).toBe(id);
+      expect(end.brief.length).toBeGreaterThan(10);
+      expect(end.approvers).toEqual(["creator"]);
+      expect(end.fixes).toHaveLength(2);
+      expect(end.attacks).toHaveLength(1);
+      expect(end.rejections.map((r) => r.reason)).toEqual([
+        expect.stringMatching(/no attack, no sign-off/),
+        expect.stringMatching(/not an approver/),
+      ]);
+      expect(end.messages.length).toBeGreaterThan(8);
+      expect(signOff(end).phase).toBe("merged");
+      expect(latest(end.verdicts)!.signoff?.by).toBe("creator");
+    });
+
+    it(`${id}: the naive fix cannot be signed off until an attack has faced it`, () => {
+      const run = runs.find((r) => r.id === id)!;
+      const s = replay(run.frames, run.frames.findIndex((f) => f.kind === "verdict") + 1);
+      expect(stamp(s).tone).toBe("pending");
+      expect(signOff(s).phase).toBe("no_attack");
+    });
+
+    it(`${id}: the attack matrix shows the R3 discard and the surviving valid attacks`, () => {
+      const run = runs.find((r) => r.id === id)!;
+      const end = replay(run.frames, run.frames.length);
+      const red = end.verdicts.find((v) => v.result === "RED")!;
+      const redRows = attackMatrix(red);
+      expect(redRows.some((r) => r.discarded)).toBe(true);
+      expect(redRows.some((r) => r.reference === "pass" && r.fix === "fail")).toBe(true);
+      const green = latest(end.verdicts)!;
+      const greenRows = attackMatrix(green);
+      expect(greenRows.some((r) => r.discarded)).toBe(true);
+      expect(greenRows.filter((r) => !r.discarded).every((r) => r.reference === "pass" && r.fix === "pass")).toBe(true);
     });
   }
+
+  it("no recording mentions a host path", () => {
+    for (const r of runs) {
+      const text = JSON.stringify(r.frames);
+      expect(text).not.toMatch(/\/Users\/|\/home\/|\/private\/|\/var\/folders|\/tmp\/|C:\\\\|AppData|\.venv/);
+    }
+  });
 });

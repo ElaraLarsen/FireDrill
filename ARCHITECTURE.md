@@ -181,7 +181,9 @@ Each ships a real bug, a repro test, an invariant, a **naive fix that passes the
 |---|---|---|---|---|---|
 | `idempotency-race` | `POST /charges` with `Idempotency-Key` does check-then-insert; concurrent retries double-charge | `threading.Lock` around the handler | Two app **processes** on one SQLite file firing the same key concurrently → 2 charges | `UNIQUE(idempotency_key)` + `INSERT … ON CONFLICT DO NOTHING`, return stored result | exactly 1 charge row per key |
 | `ratelimit-boundary` | Fixed-window limiter allows 2N requests across a window edge; off-by-one `>` vs `>=` | Flip comparison to `>=` | Hypothesis property test: burst N at `t=W-ε` and N at `t=W+ε` | Sliding-window log (or token bucket) | no interval of length W admits > N |
-| `path-traversal` | `GET /files/{name}` joins user input onto base dir | `name.replace("../", "")` | `....//etc/passwd`, `%2e%2e%2f`, absolute path, symlink inside base | `resolve()` + `is_relative_to(base)` + reject symlink escapes | every served file's real path ⊂ base |
+| `pagination-cursor` | `GET /items?limit&cursor` pages by `(created_at, id)` but the cursor repeats or skips items when timestamps tie | cursor on `created_at` alone, or offset | delete rows before the cursor, insert historical rows between page reads, malformed cursors | compound keyset cursor on `(created_at, id)`; invalid cursor → 400 | forward traversal sees every unseen row once and no seen row twice |
+
+> D16 (RELAY_STATE): the third incident is `pagination-cursor` (it replaced `path-traversal`), and verification runs in fresh local pytest subprocesses, not Docker.
 
 **Replay mode (for judges without API credits):** `scripts/replay_demo.py` pushes `naive.patch` → `attack/` → `fix.patch` from `demo/scripted/<id>/` and posts SUBMIT/ATTACK into the Mattermost channel as the seeded human user. The gate accepts them because that user is an approver, and flags them `manual`. The gate verifies them for real in Docker. Label it "scripted submissions" in the UI and README. **Live mode** uses the real Claude and Codex agents.
 

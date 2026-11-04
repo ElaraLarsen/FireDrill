@@ -38,7 +38,7 @@ Target length 3:00. Screen: Mattermost on the left half, the courtroom dashboard
 ### 2:25–2:50  The human, and the merge
 *On screen: type `@firedrill-gate APPROVE <verdict id>` as the approver. Stamp: MERGED TO MAIN. Docket: sign-off chip, merge chip.*
 
-"I type approve. The gate checks that I'm the approver by my Switch participant id, not by my words, that this is the latest verdict, that it's green, that it faced an attack, and that the branch hasn't moved. Then it merges with the key only it holds. The whole story is in the docket, and in a room document that only the gate can edit."
+"A bystander tries to approve first. Refused: not an approver. Now I type approve. The gate checks that I'm the approver by my Switch participant id, not by my words, that this is the latest verdict, that it's green, that it faced an attack, and that the branch hasn't moved. Then it merges with the key only it holds. The whole story is in the docket, and in a room document that only the gate can edit."
 
 ### 2:50–3:00  Close
 *On screen: the README's five Switch primitives table.*
@@ -48,13 +48,11 @@ Target length 3:00. Screen: Mattermost on the left half, the courtroom dashboard
 ---
 
 ## Replay-mode take (no Docker, no keys, no backend)
-Run `cd dashboard && npm run dev` (or open the hosted static demo), click **▶ Replay Recorded Drill**, and drive it with Step ▶ in time with the narration.
+Run `cd dashboard && npm run dev` (or open the hosted static demo), click **▶ Replay Recorded Drill**, and drive it with Step ▶ in time with the narration. Every beat above has a matching frame: the refused early APPROVE, the R3 discard, RED, the real fix going GREEN, the refused non-approver, then sign-off and merge.
 
-Two recordings exist and they differ. Pick the one that matches what you say:
-- `recorded-idempotency-race` (the default) is the real `gate/verify.py` matrix: baseline RED, naive GREEN on repro only, naive + attack RED, reference fix + attack GREEN, and the Rule R3 discard. It has **no room traffic, no sign-off and no merge**. Narrate beats 0:45–2:25 over it, and say once: "This is a recorded run of the real verifier. It stops at the verdict, so there's no human in this one." Skip beat 2:25–2:50.
-- `idempotency-race` with the test verifier (pick it from the dropdown) contains the room messages, the refused APPROVE, the sign-off and the merge. Say once, near 0:20: "Real courtroom code and a real guarded merge, with a test verifier standing in for the real one."
+Say once, near 0:20: "This is a recorded drill. The courtroom, the verifier and the merge are real; the fixer, the breaker and the approver are scripted, and the room is a recording." Do not describe it as a live Switch run or as Claude and Codex playing the drill.
 
-Do not describe either replay as a live Switch run.
+Pick the incident with the tabs above the case panel. `idempotency-race` is the shortest (48 frames).
 
 ## Shot checklist
 - [ ] Dashboard font size readable at 1080p side by side with Mattermost

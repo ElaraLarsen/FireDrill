@@ -1,19 +1,13 @@
-"""Record and check the dashboard's replay fixture.
+"""Every telemetry frame kind comes out of a real courtroom drill (fast, test-verifier version).
 
-The drill runs the real Courtroom, the real guarded git merge, and the real
-gate.telemetry.publish. Its verify engine is tests/fake_verify.py (a test stand-in),
-so the fixture is labelled that way: it shows the courtroom flow, not Codex's
-container verifier.
-
-Re-record with:  FIREDRILL_RECORD_FIXTURE=1 python3 -m pytest tests/test_telemetry_fixture.py
+The dashboard's replay recordings come from tests/test_courtroom_recordings.py, which uses the real
+gate.verify. This one keeps `tests/fake_verify.py` so the frame-kind and diff-stat contract is checked in
+seconds.
 """
 
 from __future__ import annotations
 
 import asyncio
-import json
-import os
-import shutil
 import sys
 
 from test_courtroom_flow import ALICE, BREAKER, FIXER, INC, ROOM, RecordingSwitch, msg, push
@@ -25,15 +19,7 @@ from gate.courtroom import Courtroom
 from gate.identity import IdentityBook
 from gate.merger import Merger
 
-FIXTURE = ROOT / "dashboard" / "fixtures" / f"{INC}.jsonl"
-META = FIXTURE.with_suffix(".meta.json")
 ALL_KINDS = set(telemetry.KINDS)
-
-PROVENANCE = (
-    "Recorded from tests/test_telemetry_fixture.py. Real courtroom code, real guarded git merge and real "
-    "gate.telemetry frames; the verify engine is tests/fake_verify.py (a test stand-in, runner image "
-    "'test-stand-in'), not the container verifier. Participant ids are test ids."
-)
 
 
 async def drill(evidence, tmp_path) -> None:
@@ -57,7 +43,7 @@ async def drill(evidence, tmp_path) -> None:
     await court.handle(msg(ALICE, f"@firedrill-gate APPROVE V-{INC}-003"))
 
 
-def test_drill_emits_every_frame_kind_and_can_record_the_fixture(evidence, tmp_path, telemetry_state):
+def test_drill_emits_every_frame_kind(evidence, tmp_path, telemetry_state):
     asyncio.run(drill(evidence, tmp_path))
     log = telemetry_state / f"{ROOM}.jsonl"
     frames = telemetry.read_frames(log)
@@ -71,26 +57,3 @@ def test_drill_emits_every_frame_kind_and_can_record_the_fixture(evidence, tmp_p
     assert sub["data"]["diff_stat"]["files"] == 1 and sub["data"]["diff_stat"]["names"] == ["app.py"]
     opened = next(f for f in frames if f["kind"] == "gate_state")
     assert opened["data"]["approvers"] == ["alice"] and "Double charges" in opened["data"]["brief"]
-
-    if os.environ.get("FIREDRILL_RECORD_FIXTURE"):
-        FIXTURE.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(log, FIXTURE)
-        META.write_text(json.dumps({
-            "title": "Courtroom flow with a test verifier: idempotency-race, merged",
-            "incident": INC,
-            "scripted": True,
-            "verifier": "test-stand-in",
-            "provenance": PROVENANCE,
-        }, indent=2) + "\n")
-
-
-def test_committed_fixture_is_a_complete_drill():
-    assert FIXTURE.exists(), "record it: FIREDRILL_RECORD_FIXTURE=1 python3 -m pytest tests/test_telemetry_fixture.py"
-    frames = telemetry.read_frames(FIXTURE)
-    assert len(frames) == len(FIXTURE.read_text().splitlines()), "every fixture line must be a valid frame"
-    assert ALL_KINDS <= {f["kind"] for f in frames}
-    results = [f["data"]["result"] for f in frames if f["kind"] == "verdict"]
-    assert results == ["GREEN", "RED", "GREEN"]
-    assert any(f["kind"] == "merge" for f in frames)
-    meta = json.loads(META.read_text())
-    assert meta["scripted"] is True and meta["verifier"] == "test-stand-in" and "stand-in" in meta["provenance"]

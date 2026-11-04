@@ -26,7 +26,7 @@ params:
     type: enum
     label: Incident to drill
     description: Which pre-seeded incident in incident-lab the room opens on
-    enum: [idempotency-race, ratelimit-boundary, path-traversal]
+    enum: [idempotency-race, ratelimit-boundary, pagination-cursor]
     default: idempotency-race
   gate:
     type: agent
@@ -131,7 +131,7 @@ room:
         attacks on attack/{incident}. Push nothing else there.
     R1. Nothing merges to main except through {gate}. Agents hold no write
         credential for main; the gate does.
-    R2. A verdict is GREEN only when, in a clean container, all of these
+    R2. A verdict is GREEN only when, in a fresh workspace and process, all of these
         pass against the submitted fix: the original repro, every attack
         on the latest attack/ branch, and the incident's invariant check.
     R3. An attack counts only if it also passes against the reference fix.

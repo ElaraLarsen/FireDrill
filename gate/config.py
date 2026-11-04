@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-KNOWN_INCIDENTS = ("idempotency-race", "ratelimit-boundary", "path-traversal")
+KNOWN_INCIDENTS = ("idempotency-race", "ratelimit-boundary", "pagination-cursor")
 
 
 def load_dotenv(path: Path = ROOT / ".env") -> None:

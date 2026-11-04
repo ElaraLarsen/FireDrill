@@ -15,6 +15,7 @@ import argparse
 import json
 import os
 import platform
+import re
 import shutil
 import signal
 import subprocess
@@ -35,6 +36,32 @@ EventSink = Callable[[str, dict[str, Any]], None]
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds")
+
+
+_WIN_HOME = re.compile(r"[A-Za-z]:[\\/]+Users[\\/]+[^\\/\s\"']+", re.IGNORECASE)
+_POSIX_HOME = re.compile(r"(?:/private)?/(?:Users|home)/[^/\s\"']+")
+_POSIX_TMP = re.compile(r"(?:/private)?/(?:var/folders/[^/\s]+/[^/\s]+/T|tmp)(?=/|\b)")
+_WIN_TMP = re.compile(r"[A-Za-z]:[\\/]+(?:Windows[\\/]+Temp|Users[\\/]+[^\\/\s]+[\\/]+AppData[\\/]+Local[\\/]+Temp)", re.IGNORECASE)
+
+
+def _scrub(text: str, *workspaces: Path) -> str:
+    """Replace host-specific absolute paths so verdicts carry nothing about the machine that ran them.
+
+    Known roots first, longest first (the check workspace, the interpreter, the repo, the temp dir, the
+    home dir), then generic patterns for any other user, temp or home path that a traceback or warning
+    names (including Windows `C:\\Users\\<name>`).
+    """
+    roots: list[tuple[str, str]] = [(str(w), "<workspace>") for w in workspaces]
+    roots += [(str(ROOT), "<repo>"), (sys.prefix, "<python>"), (sys.base_prefix, "<python>"),
+              (tempfile.gettempdir(), "<tmp>"), (str(Path.home()), "<home>")]
+    for root, label in sorted(roots, key=lambda r: -len(r[0])):
+        if len(root) > 3:
+            for variant in {root, root.replace("\\", "/"), os.path.realpath(root)}:
+                text = text.replace(variant, label)
+    text = _WIN_TMP.sub("<tmp>", text)
+    text = _WIN_HOME.sub("<home>", text)
+    text = _POSIX_TMP.sub("<tmp>", text)
+    return _POSIX_HOME.sub("<home>", text)
 
 
 def _copy(source: Path, destination: Path) -> None:
@@ -72,7 +99,7 @@ def _run(command: list[str], cwd: Path, timeout_s: float) -> tuple[int, str, int
         output, _ = proc.communicate()
         output += f"\nverification subprocess timed out after {timeout_s}s"
         code = 124
-    return code, output, round((time.monotonic() - started) * 1000)
+    return code, _scrub(output, cwd), round((time.monotonic() - started) * 1000)
 
 
 def _pytest(tree: Path, node: str, timeout_s: float, *, collect: bool = False) -> tuple[int, str, int]:
@@ -195,7 +222,7 @@ def verify(incident: str, fix_dir: str | Path, attack_dir: str | Path | None = N
             verdict["result"] = "ERROR" if "error" in statuses else "RED" if "fail" in statuses else "GREEN"
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
         verdict["result"] = "ERROR"
-        verdict.setdefault("notes", []).append(str(exc))
+        verdict.setdefault("notes", []).append(_scrub(str(exc)))
     verdict["finished_at"] = now()
     emit("verdict", verdict)
     return verdict

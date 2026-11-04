@@ -26,12 +26,12 @@ checkout's `attacks/<incident>/`. The verifier keeps submitted trees unchanged.
 Repros/invariants and reference patches are gate-owned and loaded independently
 of the submission; every test runs in a fresh workspace and subprocess.
 
-Set `FIREDRILL_RECORD_FIXTURES=1` when running the matrix to regenerate
-`dashboard/fixtures/recorded-*.jsonl` and their provenance metadata. Those files
-record real local gate checks and results, including rejected reference attacks.
-They contain no invented conversations, approvals, or merges. The older
-`idempotency-race.jsonl` presentation fixture has separate provenance and uses
-the courtroom test stand-in verifier.
+The dashboard's replay recordings are made by `tests/test_courtroom_recordings.py`, which drives
+the full courtroom (real `gate/courtroom.py`, real `gate/verify.py`, a guarded git merge) with these patches
+and tests: set `FIREDRILL_RECORD_FIXTURES=1` to regenerate `dashboard/fixtures/<incident>.jsonl`. The
+participants and the Switch room are scripted stand-ins; the recording's meta file says so.
+`FIREDRILL_RECORD_FIXTURES=1` on `tests/test_verify_matrix.py` writes its verification-only recordings
+to `gate/state/verify-recordings/` (override with `FIREDRILL_RECORD_DIR`), not to the dashboard.
 
 The requested local runner inherits network access and host permissions. It is
 for trusted scripted demo code; a fresh process is not a security sandbox.

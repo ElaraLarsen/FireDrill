@@ -86,18 +86,31 @@ cd dashboard && npm ci && npm run dev                           # dashboard on :
 cd dashboard && npm ci && npm run dev          # or: npm run build && npm run preview
 ```
 
-Open <http://localhost:5173> and click **▶ Replay Recorded Drill**. The dashboard steps through a recorded drill from `dashboard/fixtures/`: play, pause, step either way, scrub, 1×/2×/4×. The incident tabs (`idempotency-race`, `ratelimit-boundary`, `pagination-cursor`) switch between recordings. A link like `/?replay=recorded-ratelimit-boundary&step=end` opens one paused at a frame.
+Open <http://localhost:5173> and click **▶ Replay Recorded Drill**. The dashboard steps through a recorded full drill from `dashboard/fixtures/`: play, pause, step either way, scrub, 1×/2×/4×. The incident tabs (`idempotency-race`, `ratelimit-boundary`, `pagination-cursor`) switch recordings. A link like `/?replay=ratelimit-boundary&step=end` opens one paused at a frame.
 
 **Hosted demo.** `dashboard/` deploys as a static site with no backend. `dashboard/vercel.json` is set up for Vercel (import the repo, root directory `dashboard`), and `dist/` uses relative asset paths so it also works on Netlify or GitHub Pages. On a hosted copy the dashboard is replay-only and says "static demo · replay only"; it only looks for a gate on `localhost` unless `VITE_TELEMETRY_URL` is set at build time.
 
-There are two kinds of recording, and the banner says which you are watching:
+**What each recording is.** One per incident, produced by `tests/test_courtroom_recordings.py`. Every one runs the same sequence:
 
-| Recording | What is real | What is not |
+1. `docket_open` with the incident brief
+2. fixer `SUBMIT`s the naive patch → **GREEN on repro only**, "no attack, no sign-off"
+3. an early `APPROVE` is **refused** by the gate
+4. breaker `ATTACK`s → Rule R3 **discards** the over-broad test, the naive patch goes **RED**
+5. fixer `SUBMIT`s the real fix (`demo/scripted/<id>/fix.patch`) → **GREEN**, survives the valid attacks and the invariant
+6. a non-approver `APPROVE` is **refused**
+7. the approver `APPROVE`s → `signoff` → `merge` through the evidence remote's guarded `update` hook
+
+| | Real | Scripted |
 |---|---|---|
-| `recorded-<incident>` (3 of them) | Real `gate/verify.py` runs on Python 3.12: each incident goes through four verdicts, **V-001 baseline RED** (the bug, unpatched) → **V-002 naive fix GREEN on repro only** → **V-003 naive fix + hostile attack RED** → **V-004 reference fix + hostile attack GREEN**. Every one has a Rule R3 discard: an over-broad attack that fails on the reference fix is thrown out. Actual candidate commit SHAs. | Gate verification actions only. **No Switch room, no human sign-off, no merge** is recorded, and the room panel says so. V-004 is the gate's private reference fix, not an agent's patch. Scripted, local runner, network inherited. |
-| `idempotency-race` (test verifier) | The full courtroom flow including a real guarded git merge, produced by the real courtroom and `gate.telemetry`. | The verify engine is `tests/fake_verify.py`, a test stand-in (`runner test-stand-in`). Test participant ids. |
+| Courtroom | `gate/courtroom.py`, unchanged | |
+| Verifier | `gate/verify.py` on Python 3.12: repro, invariant, every valid attack, R3 discards (local pytest subprocesses; network inherited; not a sandbox) | |
+| Merge | A git merge through the evidence remote's `update` hook, which checks the gate key | |
+| Participants | | `firedrill-fixer`, `firedrill-breaker` and `creator` post the patches in `demo/scripted/<id>/` and are not live agents. Participant ids are test ids. |
+| Switch room | | A recording stand-in. No live Claude, Codex or Switch took part. |
 
-Per-incident size of the real recordings: `idempotency-race` 22 checks, `ratelimit-boundary` 34, `pagination-cursor` 30 (see `dashboard/fixtures/*.jsonl`). Re-record with `FIREDRILL_RECORD_FIXTURES=1 python -m pytest tests/test_verify_matrix.py -q`.
+The banner on every replay says "scripted". Sizes: `idempotency-race` 48 frames and 18 verifier checks, `ratelimit-boundary` 60 and 30, `pagination-cursor` 56 and 26. Re-record with `FIREDRILL_RECORD_FIXTURES=1 python -m pytest tests/test_courtroom_recordings.py`.
+
+Host paths are scrubbed: `gate/verify.py` replaces the workspace, repo, interpreter, temp and home directories (including `C:\Users\<name>`) with `<workspace>`, `<repo>`, `<python>`, `<tmp>` and `<home>` before anything leaves it, and a test fails if any recording or fixture contains a host path.
 
 Replay is stepped in the browser and never sent to the gate. When a gate is running, the dashboard also lists the runs that gate recorded (`POST /api/replay/<incident>`).
 
@@ -109,20 +122,20 @@ Replay is stepped in the browser and never sent to the gate. When a gate is runn
 
 ```bash
 pip install -r gate/requirements.txt -r requirements-dev.txt -r incident-lab/requirements.txt
-python -m pytest -q           # 50 tests: courtroom, evidence hook, Switch client, telemetry, verify matrix
-cd dashboard && npm test      # 8 tests: the reducer replays all four recordings
+python -m pytest -q           # 66 tests: courtroom, evidence hook, Switch client, telemetry, verify matrix, full drills
+cd dashboard && npm test      # 15 tests: the reducer replays the three recordings
 cd dashboard && npm run build
 ```
 
-Last run (macOS arm64, Python 3.12.14, real `pytest-asyncio`): `50 passed in 98.43s`; dashboard `8 passed`, build clean. `tests/test_verify_matrix.py` (26 tests) runs every matrix cell against real subprocesses and takes about a minute and a half on its own.
+Last run (macOS arm64, Python 3.12.14, real `pytest-asyncio`): `66 passed in 150.91s`; dashboard `15 passed`, build clean. The slow parts are `tests/test_verify_matrix.py` (every matrix cell against real subprocesses) and `tests/test_courtroom_recordings.py` (one full drill per incident).
 
 ## Honest limits
 
 - **Not yet driven against a live Switch server.** The Switch images couldn't be pulled in our build environment. The first live drill, and the unknowns in ARCHITECTURE §0.4 (op schemas at 0.31.0, `sender_name` mapping, Mattermost threading), are still open and tracked in [RELAY_STATE.md](RELAY_STATE.md).
 - **The verifier is not a sandbox.** `gate/verify.py` runs each check in a fresh local workspace and process, but the processes inherit the network and run as the gate's user. It is for trusted demo code. The earlier plan of `docker --network none` was replaced by this (D16).
-- **The real recordings stop at the verdict.** No Switch room, human sign-off or merge was recorded in them, and V-004 is the gate's reference fix. The sign-off and merge on screen come only from the test-verifier recording.
+- **The recordings are scripted.** The verifier and the merge are real, but the participants are scripted and the Switch room is a stand-in, so they show what the gate does, not that Claude and Codex can win the drill. The `creator` approval is a scripted participant, not an authenticated Switch user.
 - **Merge enforcement is local-demo grade.** The evidence remote's `update` hook rejects `main` unless the gate's key is presented. The production equivalent is a protected branch plus a GitHub App held by the gate, with fixer and breaker limited to read access.
 - **`docker-compose.firedrill.yml` has not been run** (no Docker daemon in the authoring environment). It passes `docker compose config`. The gate image now carries `incident-lab/` and its test dependencies because `gate/verify.py` needs them.
-- **Third incident name.** The third incident is `pagination-cursor` (it replaced `path-traversal`, D16). `gate/config.py` and the Switch template still name `path-traversal` until the Switch layer is updated, so the compose file sets `FIREDRILL_INCIDENTS` explicitly.
+- **Windows Git Bash is untested here.** `scripts/bootstrap_evidence.sh` used `sed` to write `.env`, which mangled Windows backslash paths so a second run no longer found its own remote. It now writes values through `awk`'s `ENVIRON`. A test with backslash-bearing values fails on the old script and passes on the new one on macOS; I have not run it on Windows.
 - Mattermost's team-edition image is amd64-only (emulated on Apple Silicon), and Switch Console is required to run the Claude and Codex sessions.
 - FireDrill is not a triage bot or a PR linter. Every workflow ends at a deterministic gate before a human is asked to sign off.

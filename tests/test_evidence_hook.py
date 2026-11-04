@@ -98,3 +98,40 @@ def test_bootstrap_is_idempotent(evidence, monkeypatch):
     assert out.returncode == 0, out.stderr
     assert "kept existing" in out.stdout
     assert env_file.read_text() == before  # same key kept
+
+
+def test_bootstrap_keeps_backslashes_in_env_values(tmp_path):
+    """A Windows-style value (C:\\Users\\...) must round-trip through the env file untouched.
+
+    The old sed-based writer ate the backslashes, so on Git Bash a second run no longer found the
+    remote it had just created. A directory name containing literal backslashes reproduces that on any OS.
+    """
+    import os
+    import subprocess
+
+    from conftest import GIT_ID, ROOT, git
+
+    lab = tmp_path / "lab"
+    lab.mkdir()
+    git("init", "-q", "-b", "main", cwd=lab)
+    (lab / "README.md").write_text("lab\n")
+    git("add", ".", cwd=lab)
+    git("commit", "-q", "-m", "lab", cwd=lab)
+
+    remote = f"{tmp_path}/C:\\Users\\win\\evidence.git"
+    keyhash = f"{tmp_path}/C:\\Users\\win\\gate.keyhash"
+    env_file = tmp_path / "win.env"
+    env_file.write_text(f"FIREDRILL_EVIDENCE_REMOTE={remote}\r\nFIREDRILL_KEYHASH_FILE={keyhash}\r\nFIREDRILL_GATE_KEY=\r\n")
+    run = lambda: subprocess.run(  # noqa: E731
+        ["bash", str(ROOT / "scripts" / "bootstrap_evidence.sh"), str(lab)],
+        text=True, capture_output=True, env={**os.environ, **GIT_ID, "FIREDRILL_ENV_FILE": str(env_file)},
+    )
+    first = run()
+    assert first.returncode == 0, first.stderr
+    assert "created" in first.stdout
+    after_first = env_file.read_text()
+    assert f"FIREDRILL_EVIDENCE_REMOTE={remote}" in after_first.replace("\r", "")
+    second = run()
+    assert second.returncode == 0, second.stderr
+    assert "kept existing" in second.stdout
+    assert env_file.read_text() == after_first

@@ -17,13 +17,17 @@ env_file="${FIREDRILL_ENV_FILE:-$root/.env}"
 lab="${1:-${FIREDRILL_LAB_REPO:-}}"
 
 [ -f "$env_file" ] || cp "$root/.env.example" "$env_file"
-getenv() { grep -E "^$1=" "$env_file" | tail -1 | cut -d= -f2- || true; }
+getenv() { grep -E "^$1=" "$env_file" | tail -1 | cut -d= -f2- | tr -d '\r' || true; }
+# Values go through awk's ENVIRON, not into a sed replacement: sed treats `\U`, `\e`, `&` in a Windows
+# path (C:\Users\...) as escapes and mangles it, which made a seeded remote look absent on Git Bash.
 setenv() {
-  if grep -qE "^$1=" "$env_file"; then
-    sed -i.bak "s|^$1=.*|$1=$2|" "$env_file" && rm -f "$env_file.bak"
-  else
-    printf '%s=%s\n' "$1" "$2" >> "$env_file"
-  fi
+  local tmp="$env_file.tmp.$$"
+  K="$1" V="$2" awk 'BEGIN { k = ENVIRON["K"]; v = ENVIRON["V"]; n = length(k) + 1 }
+    substr($0, 1, n) == k "=" { print k "=" v; seen = 1; next }
+    { print }
+    END { if (!seen) print k "=" v }' "$env_file" > "$tmp"
+  cat "$tmp" > "$env_file"
+  rm -f "$tmp"
 }
 
 remote="$(getenv FIREDRILL_EVIDENCE_REMOTE)"; remote="${remote:-/tmp/firedrill/evidence.git}"

@@ -42,7 +42,11 @@ def evidence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, objec
     (lab / "app.py").write_text("BUG = True\n")
     git("add", ".", cwd=lab)
     git("commit", "-q", "-m", "lab", cwd=lab)
+    return build_evidence(tmp_path, lab)
 
+
+def build_evidence(tmp_path: Path, lab: Path) -> dict[str, object]:
+    """Run scripts/bootstrap_evidence.sh against `lab` (a git repo) and clone a working copy of the result."""
     env_file = tmp_path / "test.env"
     remote = tmp_path / "evidence.git"
     keyhash = tmp_path / "gate.keyhash"

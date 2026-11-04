@@ -280,7 +280,7 @@ class Courtroom:
         case.fixes.append(entry)
         self.save(case)
         await self.telemetry("submission", case.room_id, None, self._actor(sender), {**_public(entry), "diff_stat": await self._diff_stat(case, co.sha)})
-        await self.post(case, f"Fix `{co.sha[:12]}` on `{co.branch}` received. Verifying in a clean container…", thread)
+        await self.post(case, f"Fix `{co.sha[:12]}` on `{co.branch}` received. Verifying in a fresh workspace…", thread)
         await self.run_verdict(case, thread)
 
     async def on_attack(self, case: Case, sender: Sender, cmd: Command, thread: str | None) -> None:

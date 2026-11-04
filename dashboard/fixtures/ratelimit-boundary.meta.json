@@ -1,0 +1,7 @@
+{
+  "title": "Full courtroom drill, real verifier: ratelimit-boundary",
+  "incident": "ratelimit-boundary",
+  "scripted": true,
+  "verifier": "gate.verify",
+  "provenance": "Full courtroom drill. Real: gate/courtroom.py, gate/verify.py (local pytest subprocesses, network inherited, not a sandbox), and a git merge through the evidence remote's update hook, which checks the gate key. Scripted: the Switch room is a recording stand-in, and firedrill-fixer, firedrill-breaker and creator are scripted participants posting demo/scripted/ratelimit-boundary/ patches and tests; no live Claude, Codex or Switch took part. Participant ids are test ids."
+}

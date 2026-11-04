@@ -31,12 +31,24 @@ export function Panel({ title, sub, children, follow }: { title: string; sub?: s
 }
 
 // ── Left: Switch Room Mirror ─────────────────────────────────────────────
+// Mattermost renders the gate's markdown; mirror the two forms it uses (**bold**, `code`).
+function Inline({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((t, i) =>
+        t.startsWith("**") && t.endsWith("**") && t.length > 4 ? <strong key={i}>{t.slice(2, -2)}</strong>
+        : t.startsWith("`") && t.endsWith("`") && t.length > 2 ? <code key={i} className="rounded-sm bg-raise px-1 text-steel">{t.slice(1, -1)}</code>
+        : t)}
+    </>
+  );
+}
+
 function Body({ text }: { text: string }) {
   const parts: ReactNode[] = [];
   let last = 0;
   for (const m of text.matchAll(COMMAND_RE)) {
     const i = m.index ?? 0;
-    parts.push(text.slice(last, i));
+    parts.push(<Inline key={`t${i}`} text={text.slice(last, i)} />);
     parts.push(
       <span key={i} className="mx-0.5 rounded-sm bg-amber px-1.5 py-px font-bold text-ink">
         @firedrill-gate <span className="uppercase">{m[1]}</span>
@@ -44,7 +56,7 @@ function Body({ text }: { text: string }) {
     );
     last = i + m[0].length;
   }
-  parts.push(text.slice(last));
+  parts.push(<Inline key="tail" text={text.slice(last)} />);
   return <>{parts}</>;
 }
 

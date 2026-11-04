@@ -7,8 +7,8 @@ from gate.identity import APPROVER, BREAKER, FIXER, OTHER, IdentityBook
 def test_parse_commands():
     c = parse("@firedrill-gate SUBMIT fix/idempotency-race a1b2c3d4e5")
     assert (c.verb, c.branch, c.sha, c.incident) == ("SUBMIT", "fix/idempotency-race", "a1b2c3d4e5", "idempotency-race")
-    c = parse("@firedrill-gate: `attack attack/path-traversal DEADBEEF1`")
-    assert (c.verb, c.branch, c.sha) == ("ATTACK", "attack/path-traversal", "deadbeef1")
+    c = parse("@firedrill-gate: `attack attack/pagination-cursor DEADBEEF1`")
+    assert (c.verb, c.branch, c.sha) == ("ATTACK", "attack/pagination-cursor", "deadbeef1")
     assert parse("@firedrill-gate APPROVE V-idempotency-race-002").verdict_id == "V-idempotency-race-002"
     assert parse("@firedrill-gate approve v-idempotency-race-002").verdict_id == "V-idempotency-race-002"
     assert parse("@firedrill-gate STATUS please").verb == "STATUS"

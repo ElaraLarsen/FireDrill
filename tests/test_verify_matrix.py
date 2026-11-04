@@ -89,7 +89,8 @@ def recordings() -> Any:
     yield recorded
     if os.environ.get("FIREDRILL_RECORD_FIXTURES") != "1":
         return
-    fixtures = ROOT / "dashboard" / "fixtures"
+    # Not dashboard/fixtures: the dashboard replays the full courtroom recordings (tests/test_courtroom_recordings.py).
+    fixtures = Path(os.environ.get("FIREDRILL_RECORD_DIR") or ROOT / "gate" / "state" / "verify-recordings")
     fixtures.mkdir(parents=True, exist_ok=True)
     for incident, runs in recorded.items():
         if set(runs) != {state[0] for state in STATES}:
