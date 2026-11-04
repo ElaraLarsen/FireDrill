@@ -1,19 +1,20 @@
-// The console at the foot of every case: the room log scrolls by as a transcript and a real prompt
-// drives the replay. It is a viewer for recorded frames, so it never sends anything anywhere.
-import { motion } from "motion/react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { complete, HELP, parse, statusLines, transcript, type Cmd, type Entry, type Ink } from "../console";
+// The console: a glass window that is hidden until you ask for it. The room log scrolls by as a
+// transcript and a real prompt drives the replay. It only views recorded frames and sends nothing.
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { complete, HELP, parse, statusLines, transcript, type Cmd, type Entry } from "../console";
 import type { Frame, State } from "../model";
 import type { Page } from "../pages";
 import type { Line } from "../story";
-import { INK } from "./theme";
-
-const TERM: Record<Ink, string> = {
-  fixer: INK.lime, breaker: INK.rose, gate: INK.sky, human: INK.lilac,
-  pass: "#5ce6a6", fail: "#ff7d7d", mute: "#8aa584",
-};
 
 type Sys = { id: number; after: number; kind: "echo" | "out" | "err"; text: string };
+/** closed: only the pill. mini: just the prompt. normal and large: the prompt with its log. */
+type Mode = "closed" | "mini" | "normal" | "large";
+
+// Motion can only tween numbers, so the tall size is worked out from the window when it is asked for.
+const heightOf = (m: "normal" | "large"): number => (m === "normal" ? 168 : Math.min(Math.round((typeof window === "undefined" ? 800 : window.innerHeight) * 0.6), 640));
+const ease = [0.16, 1, 0.3, 1] as const;
+const spring = { type: "spring", stiffness: 420, damping: 32 } as const;
 
 interface Props {
   title: string;
@@ -33,59 +34,72 @@ interface Props {
 
 export function Console(p: Props) {
   const total = p.frames?.length ?? 0;
-  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<Mode>("closed");
   const [value, setValue] = useState("");
   const [sys, setSys] = useState<Sys[]>([]);
   const [cleared, setCleared] = useState(0);
   const history = useRef<string[]>([]);
   const cursor = useRef(-1);
   const input = useRef<HTMLInputElement>(null);
+  const pill = useRef<HTMLButtonElement>(null);
   const log = useRef<HTMLDivElement>(null);
-  const dock = useRef<HTMLDivElement>(null);
+  // The shell is state, not a ref: the pill and the window swap in and out, and the margin must follow whichever is showing.
+  const [shell, setShell] = useState<HTMLDivElement | null>(null);
+  const returnFocus = useRef(false);
   const seq = useRef(0);
+  const open = mode !== "closed";
 
   const entries = useMemo(() => (p.frames ? transcript(p.frames, p.step) : []), [p.frames, p.step]);
   const floor = Math.min(cleared, p.step);
   const shown = entries.filter((e) => e.step > floor);
   const mine = sys.filter((s) => s.after <= p.step);
 
-  // The page below the dock keeps a clear margin equal to the dock's own height.
+  const show = (m: Mode = "normal") => setMode(m);
+  const hide = () => { returnFocus.current = true; setMode("closed"); if (p.running) p.onStop(); };
+
+  // The page keeps a clear margin equal to whatever is showing at the foot.
   useLayoutEffect(() => {
-    const el = dock.current;
-    if (!el) return;
-    const set = () => document.documentElement.style.setProperty("--dock", `${el.offsetHeight}px`);
+    const el = shell;
+    const set = () => document.documentElement.style.setProperty("--dock", `${el ? el.offsetHeight : 64}px`);
     set();
+    if (!el) return;
     const ro = new ResizeObserver(set);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [shell]);
 
   // New line, new scroll: the log always follows the newest line.
   useEffect(() => {
     const el = log.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [shown.length, mine.length, open, p.step]);
+  }, [shown.length, mine.length, mode, p.step]);
 
   // A different case is a fresh screen.
-  const caseKey = p.title;
-  useEffect(() => { setSys([]); setCleared(0); setValue(""); }, [caseKey]);
+  useEffect(() => { setSys([]); setCleared(0); setValue(""); }, [p.title]);
 
-  // Desktop: the prompt is ready as soon as the case opens. On touch screens it stays closed so the keyboard doesn't jump up.
+  // "/" or a backtick opens it from anywhere; Escape puts it away.
   useEffect(() => {
-    if (matchMedia("(pointer: fine)").matches) input.current?.focus({ preventScroll: true });
-  }, [caseKey]);
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      const typing = (e.target as HTMLElement)?.closest?.("input, textarea, select");
+      if (e.key === "Escape" && open) { e.preventDefault(); hide(); }
+      else if ((e.key === "/" || e.key === "`") && !typing && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); show(open ? mode : "normal"); input.current?.focus({ preventScroll: true }); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, mode, p.running]);
 
   const print = (kind: Sys["kind"], lines: string[]) =>
     setSys((xs) => [...xs, ...lines.map((text) => ({ id: seq.current++, after: p.step, kind, text }))]);
 
   const submit = (raw: string) => {
     const text = raw.trim();
-    if (text) { history.current = [...history.current, text]; }
+    if (text) history.current = [...history.current, text];
     cursor.current = -1;
     setValue("");
-    const cmd: Cmd | null = parse(text);
-    const run: Cmd = cmd ?? { t: "next", n: 1 };
+    const run: Cmd = parse(text) ?? { t: "next", n: 1 };
     const echo = text || "next";
+    if (mode === "mini") setMode("normal"); // a command that prints wants somewhere to print
     switch (run.t) {
       case "help": print("echo", [echo]); print("out", HELP.map(([a, b]) => `${a.padEnd(14)}${b}`)); return;
       case "status": print("echo", [echo]); print("out", statusLines(p.state, p.step, total, p.page)); return;
@@ -100,6 +114,7 @@ export function Console(p: Props) {
   };
 
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") return; // handled globally
     if (p.running) { e.preventDefault(); p.onStop(); return; }
     if (e.key === "Enter") { e.preventDefault(); submit(value); }
     else if (e.key === "Tab") {
@@ -117,102 +132,166 @@ export function Console(p: Props) {
   };
 
   const ghost = complete(value);
+  const atStart = p.step === 0;
   const atEnd = p.frames ? p.step >= total : true;
   const hint = !p.frames ? "following the live gate" : atEnd ? "end of the drill · try reset, back or case <name>" : p.nextLine?.title ?? "next step";
+  const stepBy = (cmd: "back" | "next") => { if (p.running) p.onStop(); submitQuiet(cmd); };
+  // The pill's arrows move the replay without printing into a console nobody is looking at.
+  const submitQuiet = (cmd: "back" | "next") => { const r = parse(cmd)!; const msg = p.onCommand(r); if (msg) setSys((xs) => [...xs, { id: seq.current++, after: p.step, kind: "out", text: msg }]); };
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 pb-3 sm:px-8 sm:pb-5">
-      <div ref={dock} className="term pointer-events-auto mx-auto max-w-[1440px] overflow-hidden" onClick={(e) => { if (!(e.target as HTMLElement).closest("button, a")) input.current?.focus({ preventScroll: true }); }}>
-        <div className="flex h-10 items-center gap-3 border-b border-white/[.07] px-4 font-mono text-[12.5px] text-on3">
-          <span className="inline-flex gap-1.5" aria-hidden><i className="h-2.5 w-2.5 rounded-full bg-white/15" /><i className="h-2.5 w-2.5 rounded-full bg-white/15" /><i className="h-2.5 w-2.5 rounded-full bg-white/15" /></span>
-          <span className="truncate text-on2">firedrill <span className="text-on3">~/</span>{p.title}</span>
-          <span className="ml-auto hidden truncate sm:inline">{p.meta}</span>
-          <button
-            onClick={() => setOpen(!open)}
-            aria-expanded={open}
-            aria-label={open ? "Shrink the console" : "Grow the console"}
-            title={open ? "Shrink" : "Grow"}
-            className="tap grid h-7 w-7 shrink-0 place-items-center text-on3 hover:bg-white/10 hover:text-on"
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-3 sm:px-8 sm:pb-5">
+      <AnimatePresence mode="wait" initial={false}>
+        {!open ? (
+          <motion.div
+            key="pill"
+            ref={setShell}
+            initial={{ opacity: 0, y: 24, scale: 0.9 }}
+            onAnimationStart={() => { if (returnFocus.current) { returnFocus.current = false; pill.current?.focus({ preventScroll: true }); } }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 24, scale: 0.9 }}
+            transition={{ duration: 0.28, ease }}
+            className="glass-pill pointer-events-auto flex items-center gap-1 p-1.5"
+            style={{ transformOrigin: "50% 100%" }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d={open ? "M6 9l6 6 6-6" : "M6 15l6-6 6 6"} />
-            </svg>
-          </button>
-        </div>
-
-        <div
-          ref={log}
-          data-lenis-prevent
-          role="log"
-          aria-live="polite"
-          aria-label="Room log"
-          className="term-log overflow-y-auto px-4 py-3 font-mono text-[13px] leading-[1.7] transition-[height] duration-300 ease-out"
-          style={{ height: open ? "min(46vh, 520px)" : 132 }}
-        >
-          {floor === 0 && <Intro p={p} />}
-          {p.frames && shown.length === 0 && mine.length === 0 && floor === 0 && <div className="text-on3">{"# nothing has happened yet"}</div>}
-          {sysAt(mine, 0)}
-          {shown.map((e) => (
-            <div key={e.step}>
-              <Row e={e} />
-              {sysAt(mine, e.step)}
+            <PillBtn label="Back one step" onClick={() => stepBy("back")} disabled={!p.frames || atStart}><Arrow dir="left" /></PillBtn>
+            <button
+              ref={pill}
+              onClick={() => show("normal")}
+              aria-label="Open the console"
+              aria-expanded={false}
+              className="tap press glass-btn inline-flex h-10 items-center gap-2.5 rounded-full px-4 font-mono text-[14px] font-medium"
+            >
+              <span className="grid h-5 w-5 place-items-center rounded-md bg-[var(--fg)] text-[11px] leading-none text-[var(--board)]" aria-hidden>❯</span>
+              Console
+              {p.frames && <span className="tnum text-[12.5px] text-[var(--fg3)]">{p.step}/{total}</span>}
+            </button>
+            <PillBtn label="Next step" onClick={() => stepBy("next")} disabled={!p.frames || atEnd}><Arrow dir="right" /></PillBtn>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="window"
+            ref={setShell}
+            role="dialog"
+            onAnimationStart={() => input.current?.focus({ preventScroll: true })}
+            aria-label="Console"
+            initial={{ opacity: 0, y: 36, scale: 0.94, filter: "blur(8px)" }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: 36, scale: 0.94, filter: "blur(8px)" }}
+            transition={{ duration: 0.36, ease }}
+            style={{ transformOrigin: "50% 100%" }}
+            className="glass-win pointer-events-auto relative w-full max-w-[1040px] overflow-hidden"
+            onClick={(e) => { if (!(e.target as HTMLElement).closest("button, a")) input.current?.focus({ preventScroll: true }); }}
+          >
+            <div className="glass-bar relative flex h-11 items-center gap-3 px-4 font-mono text-[12.5px]">
+              <div className="group/dots flex items-center gap-2" role="group" aria-label="Window controls">
+                <Dot color="#ff5f57" label="Close the console" onClick={hide}><path d="M3.2 3.2l5.6 5.6M8.8 3.2L3.2 8.8" /></Dot>
+                <Dot color="#febc2e" label={mode === "mini" ? "Show the log again" : "Shrink to just the prompt"} onClick={() => setMode(mode === "mini" ? "normal" : "mini")}><path d="M2.8 6h6.4" /></Dot>
+                <Dot color="#28c840" label={mode === "large" ? "Back to normal size" : "Make the console bigger"} onClick={() => setMode(mode === "large" ? "normal" : "large")}>
+                  <path d={mode === "large" ? "M4.4 7.6L2.8 9.2M4.4 7.6V5.6M4.4 7.6H6.4M7.6 4.4l1.6-1.6M7.6 4.4v2M7.6 4.4h-2" : "M3.2 8.8L8.8 3.2M5 3.2h3.8V7M7 8.8H3.2V5"} />
+                </Dot>
+              </div>
+              <span className="truncate text-[var(--fg2)]">firedrill <span className="text-[var(--fg3)]">~/</span>{p.title}</span>
+              <span className="ml-auto hidden truncate text-[var(--fg3)] sm:inline">{p.meta}</span>
             </div>
-          ))}
-          {p.frames && p.step > 0 && shown.length > 0 && (
-            <motion.div key={`n${p.step}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15, duration: 0.4 }} className="text-on3">
-              <span className="select-none">{"# "}</span>{p.line.title}<span className="hidden sm:inline"> — {p.line.detail}</span>
+
+            <motion.div
+              animate={{ height: mode === "mini" ? 0 : heightOf(mode as "normal" | "large"), opacity: mode === "mini" ? 0 : 1 }}
+              initial={false}
+              transition={spring}
+              className="overflow-hidden"
+              {...(mode === "mini" ? { inert: true } : {})}
+            >
+              <div
+                ref={log}
+                data-lenis-prevent
+                role="log"
+                aria-live="polite"
+                aria-label="Room log"
+                tabIndex={0}
+                className="term-log h-full overflow-y-auto px-4 py-3 font-mono text-[13px] leading-[1.7] text-[var(--fg)]"
+              >
+                {floor === 0 && <Intro p={p} />}
+                {p.frames && shown.length === 0 && mine.length === 0 && floor === 0 && <div className="text-[var(--fg3)]">{"# nothing has happened yet"}</div>}
+                {sysAt(mine, 0)}
+                {shown.map((e) => (
+                  <div key={e.step}>
+                    <Row e={e} />
+                    {sysAt(mine, e.step)}
+                  </div>
+                ))}
+                {p.frames && p.step > 0 && shown.length > 0 && (
+                  <motion.div key={`n${p.step}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15, duration: 0.4 }} className="text-[var(--fg3)]">
+                    <span className="select-none">{"# "}</span>{p.line.title}<span className="hidden sm:inline"> — {p.line.detail}</span>
+                  </motion.div>
+                )}
+                {!p.frames && <div className="text-[var(--fg3)]"><span className="select-none"># </span>{p.line.title} — {p.line.detail}</div>}
+              </div>
             </motion.div>
-          )}
-          {!p.frames && <div className="text-on3"><span className="select-none"># </span>{p.line.title} — {p.line.detail}</div>}
-        </div>
 
-        <div className="flex items-center gap-3 border-t border-white/[.07] px-4 py-2.5 font-mono text-[14px]">
-          <span className="select-none text-lime" aria-hidden>{p.running ? "…" : "❯"}</span>
-          <div className="relative min-w-0 flex-1">
-            <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center whitespace-pre text-on3">
-              <span className="invisible">{value}</span>
-              {ghost && <span>{ghost.slice(value.trimStart().length)}</span>}
-              {!value && <span className="truncate">{p.running ? "running… press any key to stop" : hint}</span>}
+            <div className="glass-bar flex items-center gap-3 border-t px-4 py-2.5 font-mono text-[14px]">
+              <span className="select-none text-[var(--t-accent)]" aria-hidden>{p.running ? "…" : "❯"}</span>
+              <div className="relative min-w-0 flex-1">
+                <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center whitespace-pre text-[var(--fg3)]">
+                  <span className="invisible">{value}</span>
+                  {ghost && <span>{ghost.slice(value.trimStart().length)}</span>}
+                  {!value && <span className="truncate">{p.running ? "running… press any key to stop" : hint}</span>}
+                </div>
+                <input
+                  ref={input}
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  onKeyDown={onKey}
+                  readOnly={p.running}
+                  spellCheck={false}
+                  autoCapitalize="off"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  enterKeyHint="go"
+                  aria-label="Command prompt. Press Enter to run the next step, or type help."
+                  className="term-input h-8 w-full bg-transparent text-[var(--fg)] outline-none"
+                />
+              </div>
+              <div className="flex shrink-0 items-center gap-1 text-[13px]">
+                <Soft label="back" onClick={() => submit("back")} disabled={!p.frames || atStart || p.running} />
+                <Soft label="next" kbd="⏎" onClick={() => submit("next")} disabled={!p.frames || atEnd || p.running} primary />
+                <Soft label={p.running ? "stop" : "run"} onClick={() => (p.running ? p.onStop() : submit("run"))} disabled={!p.frames || (atEnd && !p.running)} />
+              </div>
             </div>
-            <input
-              ref={input}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={onKey}
-              readOnly={p.running}
-              spellCheck={false}
-              autoCapitalize="off"
-              autoComplete="off"
-              autoCorrect="off"
-              enterKeyHint="go"
-              aria-label="Command prompt. Press Enter to run the next step, or type help."
-              className="term-input h-8 w-full bg-transparent text-on outline-none"
-            />
-          </div>
-          <div className="flex shrink-0 items-center gap-1 text-[13px]">
-            <Soft label="back" onClick={() => submit("back")} disabled={!p.frames || p.step === 0 || p.running} />
-            <Soft label="next" kbd="⏎" onClick={() => submit("next")} disabled={!p.frames || atEnd || p.running} primary />
-            <Soft label={p.running ? "stop" : "run"} onClick={() => (p.running ? p.onStop() : submit("run"))} disabled={!p.frames || (atEnd && !p.running)} />
-          </div>
-        </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+function Dot({ color, label, onClick, children }: { color: string; label: string; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="dot grid h-3.5 w-3.5 place-items-center rounded-full"
+      style={{ background: color }}
+    >
+      <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="rgb(0 0 0 / .6)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="dot-glyph">{children}</svg>
+    </button>
   );
 }
 
 function Intro({ p }: { p: Props }) {
   return (
-    <div className="mb-1 text-on3">
-      <div><span className="text-on2">firedrill</span> · {p.frames ? `replaying ${p.title}` : "following the live gate"} · {p.meta}</div>
-      <div>Enter runs the next step. <span className="text-on2">run</span> plays on its own, <span className="text-on2">help</span> lists the rest.</div>
+    <div className="mb-1 text-[var(--fg3)]">
+      <div><span className="text-[var(--fg2)]">firedrill</span> · {p.frames ? `replaying ${p.title}` : "following the live gate"} · {p.meta}</div>
+      <div>Enter runs the next step. <span className="text-[var(--fg2)]">run</span> plays on its own, <span className="text-[var(--fg2)]">help</span> lists the rest.</div>
     </div>
   );
 }
 
 function sysAt(xs: Sys[], after: number) {
   return xs.filter((s) => s.after === after).map((s) => (
-    <div key={s.id} className={`row-in whitespace-pre-wrap break-words ${s.kind === "err" ? "text-[#ff9a9a]" : s.kind === "echo" ? "text-on" : "text-on2"}`}>
-      {s.kind === "echo" && <span className="select-none text-lime">❯ </span>}
+    <div key={s.id} className={`row-in whitespace-pre-wrap break-words ${s.kind === "err" ? "text-[var(--t-fail)]" : s.kind === "echo" ? "text-[var(--fg)]" : "text-[var(--fg2)]"}`}>
+      {s.kind === "echo" && <span className="select-none text-[var(--t-accent)]">❯ </span>}
       {s.text}
     </div>
   ));
@@ -221,11 +300,11 @@ function sysAt(xs: Sys[], after: number) {
 function Row({ e }: { e: Entry }) {
   return (
     <div className="row-in flex gap-x-3">
-      <span className="hidden shrink-0 select-none text-on3 sm:inline">{e.time}</span>
-      <span className="w-[7.5rem] shrink-0 truncate sm:w-[10.5rem]" style={{ color: TERM[e.ink] }}>{e.who}</span>
-      <span className="min-w-0 flex-1 truncate text-on" title={e.text}>
+      <span className="hidden shrink-0 select-none text-[var(--fg3)] sm:inline">{e.time}</span>
+      <span className="w-[7.5rem] shrink-0 truncate sm:w-[10.5rem]" style={{ color: `var(--t-${e.ink})` }}>{e.who}</span>
+      <span className="min-w-0 flex-1 truncate" title={e.text}>
         {e.text}
-        {e.note && <span className="text-on3"> · {e.note}</span>}
+        {e.note && <span className="text-[var(--fg3)]"> · {e.note}</span>}
       </span>
     </div>
   );
@@ -238,7 +317,7 @@ function Soft({ label, kbd, onClick, disabled, primary }: { label: string; kbd?:
       disabled={disabled}
       whileTap={disabled ? undefined : { scale: 0.92 }}
       transition={{ type: "spring", stiffness: 600, damping: 18 }}
-      className={`tap inline-flex h-8 items-center gap-1.5 px-2.5 disabled:cursor-not-allowed disabled:opacity-30 ${primary ? "bg-lime text-forest hover:brightness-110" : "text-on2 hover:bg-white/10 hover:text-on"}`}
+      className={`tap inline-flex h-8 items-center gap-1.5 px-2.5 disabled:cursor-not-allowed disabled:opacity-35 ${primary ? "glass-primary" : "text-[var(--fg2)] hover:bg-[var(--wash)] hover:text-[var(--fg)]"}`}
     >
       {label}
       {kbd && <span className="hidden text-[12px] opacity-70 sm:inline">{kbd}</span>}
@@ -246,3 +325,24 @@ function Soft({ label, kbd, onClick, disabled, primary }: { label: string; kbd?:
   );
 }
 
+function PillBtn({ children, label, onClick, disabled }: { children: ReactNode; label: string; onClick: () => void; disabled?: boolean }) {
+  return (
+    <motion.button
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      whileTap={disabled ? undefined : { scale: 0.88 }}
+      transition={{ type: "spring", stiffness: 600, damping: 18 }}
+      className="tap glass-btn grid h-10 w-10 place-items-center rounded-full disabled:cursor-not-allowed disabled:opacity-35"
+    >
+      {children}
+    </motion.button>
+  );
+}
+
+const Arrow = ({ dir }: { dir: "left" | "right" }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d={dir === "left" ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"} />
+  </svg>
+);

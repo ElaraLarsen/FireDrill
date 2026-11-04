@@ -114,7 +114,7 @@ function Nav({ onTop, scrollTo, onEnter }: { onTop: () => void; scrollTo: (id: s
     <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-6 sm:pt-5">
       <nav aria-label="Landing" className="nb mx-auto flex h-16 max-w-[1400px] items-center gap-3 rounded-full bg-cream pl-2.5 pr-2 sm:pl-3">
         <Brand onHome={onTop} light />
-        <span className="label ml-1 hidden text-forest/65 xl:block">Adversarial hotfix courtroom</span>
+        <span className="label ml-1 hidden text-forest/80 xl:block">Adversarial hotfix courtroom</span>
         <ul className="ml-auto hidden items-center gap-1 md:flex">
           {NAV.map(([id, label]) => (
             <li key={id}>
@@ -172,9 +172,9 @@ function Hero({ onWatch, onHow, first }: { onWatch: () => void; onHow: () => voi
         >
           <span className="grid h-16 w-16 shrink-0 place-items-center rounded-[14px] border-[3px] border-forest text-forest" style={{ background: INCIDENT_HEX[first.run.incident ?? ""] }}>{INCIDENT_ICON[first.run.incident ?? ""]?.(26)}</span>
           <span className="min-w-0">
-            <span className="label block text-forest/60">Now showing · scripted</span>
+            <span className="label block text-forest/80">Now showing · scripted</span>
             <span className="serif mt-1 block text-[24px]">{INCIDENT_META[first.run.incident ?? ""]?.label ?? first.run.title}</span>
-            <span className="block text-[13px] font-medium text-forest/70">{first.run.frames.length} moments · tap to play</span>
+            <span className="block text-[13px] font-medium text-forest/80">{first.run.frames.length} moments · tap to play</span>
           </span>
         </button>
         </motion.div>
@@ -239,14 +239,16 @@ function Story({ rec, onWatch }: { rec: ReturnType<typeof useRecord>; onWatch: (
         <motion.div {...rise(2)} className="lg:col-span-12">
           <dl className="nb-lg grid grid-cols-2 overflow-hidden rounded-[26px] bg-cream lg:grid-cols-4">
             {stats.map((s, i) => (
-              <div key={s.label} className={`relative p-6 sm:p-8 ${i % 2 ? "border-l-[3px] border-forest" : ""} ${i >= 2 ? "border-t-[3px] border-forest lg:border-t-0" : ""} ${i === 2 ? "lg:border-l-[3px]" : ""}`}>
-                <span className="absolute right-5 top-5 h-5 w-5 rounded-full border-[3px] border-forest" style={{ background: s.hex }} />
+              <div key={s.label} className={`relative flex flex-col-reverse justify-end p-6 sm:p-8 ${i % 2 ? "border-l-[3px] border-forest" : ""} ${i >= 2 ? "border-t-[3px] border-forest lg:border-t-0" : ""} ${i === 2 ? "lg:border-l-[3px]" : ""}`}>
+                <dt className="label mt-3 text-forest/75">
+                  <span aria-hidden className="absolute right-5 top-5 h-5 w-5 rounded-full border-[3px] border-forest" style={{ background: s.hex }} />
+                  {s.label}
+                </dt>
                 <dd className="display text-[64px] sm:text-[96px]"><Count to={s.n} /></dd>
-                <dt className="label mt-3 text-forest/75">{s.label}</dt>
               </div>
             ))}
           </dl>
-          <p className="mt-5 max-w-[80ch] text-[14px] leading-relaxed text-forest/70">
+          <p className="mt-5 max-w-[80ch] text-[14px] leading-relaxed text-forest/80">
             Counted from the three drills bundled with FireDrill. They are scripted replays: the Switch room is a recording and the fixer, breaker and approver are scripted participants. The gate's pytest runs and the merge through the gate-key hook were real.
           </p>
         </motion.div>
@@ -362,11 +364,11 @@ function CaseCard({ c, onPick }: { c: CaseItem; onPick: (id: string) => void }) 
       <h3 className="serif mt-auto text-[44px] leading-[0.95] sm:text-[64px]">{INCIDENT_META[inc]?.label ?? c.run.title}</h3>
       <p className="mt-3 text-[18px] font-medium sm:text-[21px]">{INCIDENT_PLAIN[inc]}.</p>
       <div className="mt-6">
-        <span className="label text-forest/70">How it went</span>
+        <span className="label text-forest/80">How it went</span>
         <ol className="mt-2 flex flex-wrap items-center gap-2">
           {verdictChips(c.s.verdicts).map((v, i) => (
             <li key={v.k} className="flex items-center gap-2">
-              {i > 0 && <I.Chevron size={14} className="text-forest/60" />}
+              {i > 0 && <I.Chevron size={14} className="text-forest/80" />}
               <span className="inline-flex h-9 items-center gap-1.5 rounded-full border-[2.5px] border-forest bg-forest px-3 font-mono text-[13px] font-bold text-cream">
                 <span className="grid h-5 w-5 place-items-center rounded-full text-forest" style={{ background: v.hex }}>{v.icon}</span>{v.text}
               </span>
@@ -460,15 +462,15 @@ function Footer({ cases, onPick, onOpen, onEnter }: { cases: Run[]; onPick: (id:
         </div>
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:col-span-6 lg:col-start-7">
           <div>
-            <h3 className="label mb-4 text-forest/60">Steps</h3>
+            <h3 className="label mb-4 text-forest/80">Steps</h3>
             <ul className="space-y-2.5">{PAGES.map((pg) => <li key={pg}><button onClick={() => onOpen(pg)} className={link}>{PAGE_META[pg].label}</button></li>)}</ul>
           </div>
           <div>
-            <h3 className="label mb-4 text-forest/60">Cases</h3>
+            <h3 className="label mb-4 text-forest/80">Cases</h3>
             <ul className="space-y-2.5">{cases.map((r) => <li key={r.id}><button onClick={() => onPick(r.id)} className={link}>{INCIDENT_META[r.incident ?? ""]?.label ?? r.title}</button></li>)}</ul>
           </div>
           <div>
-            <h3 className="label mb-4 text-forest/60">Elsewhere</h3>
+            <h3 className="label mb-4 text-forest/80">Elsewhere</h3>
             <ul className="space-y-2.5">
               <li><button onClick={onEnter} className={link}>The courtroom</button></li>
               <li><a href="https://github.com/ElaraLarsen/FireDrill" target="_blank" rel="noreferrer" className={link}>Source on GitHub</a></li>
@@ -483,7 +485,7 @@ function Footer({ cases, onPick, onOpen, onEnter }: { cases: Run[]; onPick: (id:
         </div>
       </div>
       <div className="border-t-[3px] border-forest">
-        <div className="label mx-auto flex max-w-[1440px] flex-wrap justify-between gap-3 px-4 py-5 text-forest/70 sm:px-8">
+        <div className="label mx-auto flex max-w-[1440px] flex-wrap justify-between gap-3 px-4 py-5 text-forest/80 sm:px-8">
           <span>© 2026 FireDrill · Flip the Switch hackathon</span>
           <span>Instrument Serif · Bricolage Grotesque · Built on Switch</span>
         </div>
