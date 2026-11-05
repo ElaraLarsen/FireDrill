@@ -8,3 +8,6 @@ gate/state/
 .switch-stack/
 .pytest_cache/
 *.tsbuildinfo
+video/.claude/
+video/demo/node_modules/
+video/demo/out/
