@@ -80,6 +80,10 @@ pip install -r gate/requirements.txt && python -m gate.main     # gate + telemet
 cd dashboard && npm ci && npm run dev                           # dashboard on :5173
 ```
 
+## Live evidence
+
+A real Switch 0.31.0 stack, a bridged room, the gate over its agent WebSocket, real pytest verdicts and a guarded merge, for all three incidents. The commands were posted by one Mattermost user (scripted authorship, labelled). Read [docs/evidence/live-switch-run.md](docs/evidence/live-switch-run.md); the gate's own recordings are `docs/evidence/live-switch-*.jsonl`, and [docs/demo-dashboard.mp4](docs/demo-dashboard.mp4) is a 62-second screen recording of the dashboard stepping through one of them from its console (silent; narrate it for your own cut).
+
 ## Judge Replay Mode (no Docker, no API keys, no backend)
 
 ```bash
@@ -122,20 +126,20 @@ Replay is stepped in the browser and never sent to the gate. When a gate is runn
 
 ```bash
 pip install -r gate/requirements.txt -r requirements-dev.txt -r incident-lab/requirements.txt
-python -m pytest -q           # 68 tests: courtroom, evidence hook, Switch client, telemetry, verify matrix, full drills
-cd dashboard && npm test      # 34 tests: reducer, journey stages and narration replay the three recordings
+python -m pytest -q           # 73 tests: courtroom, evidence hook, Switch client, telemetry, verify matrix, full drills
+cd dashboard && npm test      # 56 tests: reducer, stages, narration, console commands; `npm run e2e` runs 82 Playwright checks
 cd dashboard && npm run build
 ```
 
-Last run (macOS arm64, Python 3.12.14, real `pytest-asyncio`): `68 passed in 151.79s`; dashboard `25 passed`, build clean. The slow parts are `tests/test_verify_matrix.py` (every matrix cell against real subprocesses) and `tests/test_courtroom_recordings.py` (one full drill per incident).
+Last run (macOS arm64, Python 3.12.14, real `pytest-asyncio`): `73 passed in 149s`; dashboard `56 passed`, Playwright `82 passed` (desktop and phone), build clean. The slow parts are `tests/test_verify_matrix.py` (every matrix cell against real subprocesses) and `tests/test_courtroom_recordings.py` (one full drill per incident).
 
 ## Honest limits
 
-- **Not yet driven against a live Switch server.** The Switch images couldn't be pulled in our build environment. The first live drill, and the unknowns in ARCHITECTURE §0.4 (op schemas at 0.31.0, `sender_name` mapping, Mattermost threading), are still open and tracked in [RELAY_STATE.md](RELAY_STATE.md).
+- **Driven against a live Switch server, but not with the real agents.** On 2026-11-05 all three incidents ran end to end against a real Switch 0.31.0 stack (see [docs/evidence/live-switch-run.md](docs/evidence/live-switch-run.md)): the gate registered, held its WebSocket, ruled in a bridged Mattermost room and merged through the guarded hook. The commands were posted by one Mattermost human via `scripts/replay_demo.py`, so no Claude Code or Codex session took part. Still open: a drill with the real fixer and breaker (needs Switch Console sign-ins), Mattermost threading, and the template run through Console.
 - **The verifier is not a sandbox.** `gate/verify.py` runs each check in a fresh local workspace and process, but the processes inherit the network and run as the gate's user. It is for trusted demo code. The earlier plan of `docker --network none` was replaced by this (D16).
 - **The recordings are scripted.** The verifier and the merge are real, but the participants are scripted and the Switch room is a stand-in, so they show what the gate does, not that Claude and Codex can win the drill. The `creator` approval is a scripted participant, not an authenticated Switch user.
 - **Merge enforcement is local-demo grade.** The evidence remote's `update` hook rejects `main` unless the gate's key is presented. The production equivalent is a protected branch plus a GitHub App held by the gate, with fixer and breaker limited to read access.
-- **`docker-compose.firedrill.yml` has not been run** (no Docker daemon in the authoring environment). It passes `docker compose config`. The gate image now carries `incident-lab/` and its test dependencies because `gate/verify.py` needs them.
+- **`docker-compose.firedrill.yml` was built and brought up once** (2026-11-05, Docker Desktop on macOS arm64): both images built, the gate container reported healthy, passed its preflight against the live Switch stack through `host.docker.internal`, and served the dashboard on :5173 with the gate's live recordings. The merge path was not exercised inside the container: the compose file mounts `/tmp/firedrill` for the evidence remote and that run used host paths.
 - **Windows Git Bash is untested here.** `scripts/bootstrap_evidence.sh` used `sed` to write `.env`, which mangled Windows backslash paths so a second run no longer found its own remote. It now writes values through `awk`'s `ENVIRON`. A test with backslash-bearing values fails on the old script and passes on the new one on macOS; I have not run it on Windows.
 - Mattermost's team-edition image is amd64-only (emulated on Apple Silicon), and Switch Console is required to run the Claude and Codex sessions.
 - FireDrill is not a triage bot or a PR linter. Every workflow ends at a deterministic gate before a human is asked to sign off.

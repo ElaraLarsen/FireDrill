@@ -40,6 +40,29 @@ def build(cfg: Config) -> tuple[SwitchClient, Courtroom]:
     return client, court
 
 
+def addressing_state(detail: dict) -> str:
+    """Who may address this agent, from `get_agent_detail`.
+
+    Switch 0.31.0 (observed live against a local stack) returns `addressing_policy`: null means the agent
+    is open to anyone; otherwise `{"rules": [{rooms, room_groups, users, agents, owner, owner_agents,
+    platform}, ...]}`. Older builds returned an `addressing` object with a `policy` string, still honoured.
+    """
+    if "addressing_policy" in detail:
+        pol = detail["addressing_policy"]
+        if pol is None:
+            return "anyone"
+        rules = pol.get("rules") if isinstance(pol, dict) else None
+        if not rules:
+            return "custom"
+        if any(r.get("owner_agents") for r in rules):
+            return "owner_and_owner_agents"
+        if all(r.get("owner") and not (r.get("users") or r.get("agents") or r.get("platform")) for r in rules):
+            return "owner_only"
+        return "custom"
+    legacy = detail.get("addressing")
+    return legacy.get("policy") if isinstance(legacy, dict) else (legacy or "unknown")
+
+
 async def preflight(client: SwitchClient, cfg: Config, *, strict: bool) -> dict:
     report: dict = {"switch_url": cfg.switch_url, "agent_id": cfg.agent_id}
     report["health"] = await client.health()
@@ -50,13 +73,13 @@ async def preflight(client: SwitchClient, cfg: Config, *, strict: bool) -> dict:
     (cfg.state_dir / "ops_schema.json").write_text(json.dumps(schemas, indent=2, sort_keys=True))
     try:
         detail = await client.op("get_agent_detail", agent_id=cfg.agent_id)
-        addressing = (detail or {}).get("addressing") or {}
-        report["addressing"] = addressing
+        report["addressing_policy"] = (detail or {}).get("addressing_policy")
         report["owner"] = (detail or {}).get("owner_name")
+        policy = addressing_state(detail or {})
     except OpError as e:
         report["addressing_error"] = str(e)
-        addressing = {}
-    policy = addressing.get("policy") if isinstance(addressing, dict) else addressing
+        policy = None
+    report["addressing"] = policy
     if strict and policy not in ADDRESSING_OK:
         raise SystemExit(
             f"firedrill-gate addressing is '{policy}'. The fixer and breaker can't reach it like that.\n"

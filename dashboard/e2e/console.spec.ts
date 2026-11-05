@@ -151,7 +151,9 @@ test.describe("console: the prompt drives the replay", () => {
     await openCase(page);
     await openConsole(page);
     await type(page, "case pagination-cursor");
-    await expect(page).toHaveURL(/pagination-cursor/);
+    // A recording made by a live gate (run id = its room) is preferred over the bundled one, so the case is named in the console, not the URL.
+    await expect(page.locator(".glass-tab")).toContainText("pagination-cursor");
+    await expect.poll(() => step(page)).toBe(0);
     await type(page, "case nope");
     await expect(page.getByRole("log")).toContainText("No case called nope");
   });

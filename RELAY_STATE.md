@@ -1,7 +1,7 @@
 # RELAY_STATE — FireDrill live ledger
 
 ## Last Active Agent
-**Presentation lane (Teammate 2)**: 2026-11-04 ~19:00 IST: console redesigned (colour, leaf shape, own controls, no mac dots); committed locally, push pending the user's go-ahead.
+**Presentation lane (Teammate 2)**: 2026-11-05 ~09:10 IST: first live run against a real Switch 0.31.0 stack (all three incidents merged through the gate), compose stack built and brought up, demo screen recording, gate preflight fix; uncommitted until the user says push.
 
 ## Winning Project
 **FireDrill: an adversarial hotfix courtroom in chat.**
@@ -37,7 +37,19 @@ Hook: Switch's own incident-response docs admit human approval is "instructions 
 - [x] Presentation lane built and tested (telemetry, dashboard, compose, README, demo script, blog). Compose unrun (no Docker daemon); no live Switch yet.
 - [ ] First live end-to-end drill
 
-## Completed in This Turn (presentation lane, phase 15: coloured leaf-shaped console, own controls)
+## Completed in This Turn (presentation lane, phase 16: first live Switch run)
+- Docker Desktop started; `scripts/bootstrap_stack.sh` brought up **Switch 0.31.0** (switch-core, Gateway, Mattermost, Postgres). Postgres host port moved to 55432 in the gitignored `.env` because a local Postgres owns 5432. ghcr.io was reachable this time.
+- Minted a personal Gateway key (Gateway `POST /gateway/api-keys` after `POST /gateway/auth/login`), ran `scripts/register_gate.py`, opened the gate to anyone (`PUT /gateway/agents/{id}/addressing-policy {"policy": null}`), ran `scripts/bootstrap_evidence.sh` against a scratch copy of `incident-lab/` as a git repo, and `python -m gate.main --probe`: health ok, 53 ops, `ops_schema_problems: []`.
+- Created `firedrill-<incident>` rooms with Switch `create_room` (`agent_names=["firedrill-gate"]`) + `add_users_to_room(user_names=["user"])`, ran the gate, and ran `scripts/replay_demo.py --approve` for all three incidents: GREEN (repro only), RED (attack), GREEN (root-cause) and a guarded merge each (evidence remote `main` shows `FireDrill: merge V-<incident>-003`). 42/54/50 telemetry frames, saved as `docs/evidence/live-switch-<incident>.jsonl`; write-up in `docs/evidence/live-switch-run.md`. The first attempt returned ERROR because the verifier ran under the system Python 3.14 without pytest; fixed by putting a venv with `incident-lab/requirements.txt` first on PATH for the gate (note for anyone running the gate natively).
+- **Bug found and fixed (Claude-1's lane, `gate/main.py`; D25):** against 0.31.0 `get_agent_detail` returns `addressing_policy` (null = anyone), not `addressing`; the gate's strict preflight would have refused to start. Added `addressing_state()` and `tests/test_addressing_state.py` (shapes observed live).
+- `docker compose -f docker-compose.firedrill.yml build` and `up -d`: both images built, gate container healthy, preflight passed against the live stack via `host.docker.internal`, dashboard 200 on :5173 and listing the gate's three live recordings. The merge path was not exercised in the container (evidence remote lives in the scratchpad, not `/tmp/firedrill`).
+- Dashboard e2e re-run against the compose-served dashboard: 80/82 passed; the 2 failures were a test assumption (a live-recorded run is now preferred over the bundled fixture); test fixed.
+- `docs/demo-dashboard.mp4`: 62 s silent screen recording (30 fps, frames from headless Chrome) of the console running a live-recorded drill. README updated (live evidence section, honest limits, test counts: pytest 73, vitest 56, Playwright 82).
+- Open unknowns after this run: #1 closed (op schemas match at 0.31.0). #2 closed for Mattermost humans (`sender_name` = username `user`, pinned by participant id); agent `sender_name` unverified (no agents ran). #3 (threading) not exercised. #4 closed (`add_users_to_room` puts the user in the room; replay_demo works).
+- Still not done: a drill with real Claude Code and Codex agents (needs Switch Console sign-ins by a human), `run_template` through Console, the Vercel/public deploy, Windows, the Wispr scorecard (needs Wispr Flow's Insights screenshot from the user).
+- Running now: Docker containers `switch-stack-*` (ports 8000, 3000, 8065, 55432) and `firedrill-gate-1`, `firedrill-dashboard-1` (8787, 5173). Stop with `scripts/bootstrap_stack.sh down` and `docker compose -f docker-compose.firedrill.yml down`.
+
+## Previous turn (presentation lane, phase 15: coloured leaf-shaped console, own controls)
 - Pulled `88edd5b` (the landing page is now the front page at `#/`; the case list is `#/cases`) and built on it.
 - Console redesign (user request): the mac red/yellow/green dots are gone. New controls drawn from scratch: three rising size bars and a lozenge fold, in an overhanging glass tab. The window is a leaf shape with colour pooled in the glass and a rainbow masked edge; "next" is a slanted blade; the pill has a turning four-hue orb. Files: `dashboard/src/ui/Console.tsx`, `src/index.css`, `e2e/console.spec.ts`, `DESIGN.md`, `docs/dashboard.jpg`. Transcript text and prompt behaviour unchanged.
 - Verification: `npx tsc -b` clean; `npx vitest run` 56 passed; `npx playwright test` 82 passed (desktop + phone); screenshots checked at 1600 and 390 wide on cream, sky, rose and dark boards. Not tested: real touch hardware, Safari/Firefox.
@@ -441,6 +453,7 @@ Bugs the tests caught and fixed:
   4. Whether the seeded Mattermost `user` is the `{$creator}` when the template is run from Console. `replay_demo.py` assumes it can see the channel.
 
 ## Decisions Log
+- D25 (2026-11-05, presentation lane; user: "do whatever you want"): cross-lane edit to `gate/main.py` (Claude-1's lane): `addressing_state()` reads the live 0.31.0 `addressing_policy` shape. No other gate logic changed. Added `docs/evidence/` and `docs/demo-dashboard.mp4`.
 - D24 (2026-11-04, presentation lane; user-requested): console hidden by default behind a glass pill; Playwright added as a dev dependency with e2e tests; colour tokens `flare`/`mint` added and scarlet brightened for AA contrast. The contributor's landing-page files got small accessibility-only fixes (stats list markup, SplitText aria, label contrast).
 - D23 (2026-11-04, presentation lane; user-requested): the bottom player is now a terminal console (`Console.tsx`). Opening a case no longer auto-plays; Space no longer toggles playback. The attack hue is rose, not orange. `model.ts`, fixtures and the gate are unchanged.
 - D22 (2026-11-04, presentation lane; user-requested): the bright UI replaces the obsidian one on main. Codex's D21 files that only served the old UI were removed; its fonts, favicon and Inter exception were kept. To go back: `git revert` the merge commit.
