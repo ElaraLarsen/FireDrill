@@ -45,8 +45,19 @@ function upgradeLegacy(): void {
   history.replaceState(null, "", `${location.pathname}${href({ name: "case", run, page: "case", step: step === "end" ? "end" : step === null ? null : Number(step) || 0 })}`);
 }
 
+/**
+ * A browser refresh starts over at the landing page. Links you open (typed, pasted, or followed) still
+ * land where they point, so a shared address to a finished drill keeps working.
+ */
+function startOverOnReload(): void {
+  if (typeof location === "undefined" || typeof performance === "undefined") return;
+  try { history.scrollRestoration = "manual"; } catch { /* some embedded browsers refuse */ }
+  const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+  if (nav?.type === "reload" && location.hash !== "" && location.hash !== "#/") history.replaceState(null, "", `${location.pathname}#/`);
+}
+
 export function useRoute(): [Route, (r: Route, opts?: { replace?: boolean }) => void] {
-  const [route, setRoute] = useState<Route>(() => { upgradeLegacy(); return parse(typeof location !== "undefined" ? location.hash : ""); });
+  const [route, setRoute] = useState<Route>(() => { upgradeLegacy(); startOverOnReload(); return parse(typeof location !== "undefined" ? location.hash : ""); });
   useEffect(() => {
     const on = () => setRoute(parse(location.hash));
     window.addEventListener("hashchange", on);

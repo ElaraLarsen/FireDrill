@@ -82,6 +82,34 @@ test("landing: the footer wordmark finishes drawing and is not clipped", async (
   expect(r.moved, "letters still mid-animation").toBe(0);
 });
 
+test.describe("refresh starts over at the landing page", () => {
+  for (const route of ["/#/cases", "/#/case/idempotency-race/ruling?step=24", "/#/live/case"]) {
+    test(`reload on ${route}`, async ({ page }) => {
+      await page.goto(route);
+      await page.waitForTimeout(800);
+      await page.reload();
+      await expect.poll(() => new URL(page.url()).hash).toBe("#/");
+      await expect(page.getByRole("link", { name: /Open the courtroom/ }).or(page.getByRole("button", { name: /Open the courtroom/ })).first()).toBeVisible();
+    });
+  }
+
+  test("a link you open still goes where it points", async ({ page }) => {
+    await page.goto("/#/case/idempotency-race/signoff?step=end");
+    await expect(page.getByRole("button", { name: "Open the console" })).toBeVisible();
+    expect(new URL(page.url()).hash).toContain("/case/idempotency-race/signoff");
+  });
+
+  test("reloading the landing page itself returns to the top", async ({ page }) => {
+    await page.goto("/#/");
+    await page.waitForTimeout(1200);
+    await page.mouse.wheel(0, 2500);
+    await page.waitForTimeout(1500);
+    await page.reload();
+    await page.waitForTimeout(1200);
+    expect(await page.evaluate(() => scrollY)).toBeLessThan(5);
+  });
+});
+
 test("reduced motion: the console still opens and works", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await openCase(page);
