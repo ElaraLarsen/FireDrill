@@ -11,3 +11,5 @@ gate/state/
 video/.claude/
 video/demo/node_modules/
 video/demo/out/
+video/demo/public/clips/
+video/demo/public/audio/

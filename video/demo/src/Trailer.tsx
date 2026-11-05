@@ -2,19 +2,19 @@ import { AbsoluteFill, Easing, Sequence, interpolate, spring, staticFile, useCur
 import { liveTrace } from "./liveTrace";
 
 // FireDrill's palette, the same one the dashboard uses.
-const C = {
+export const C = {
   forest: "#0f2a1d", p1: "#143322", p2: "#1b3f2b", cream: "#f3eedf", lime: "#c6f432", sky: "#8fcbf2",
   lilac: "#c4b3f6", rose: "#ff8fb1", mint: "#5ce6a6", flare: "#ff8a8a", on2: "#cdd8c4", on3: "#9bb092",
 };
-const SERIF = "'Instrument Serif', Georgia, serif";
-const SANS = "Bricolage, 'Helvetica Neue', sans-serif";
-const MONO = "'JetBrains Mono', ui-monospace, monospace";
-const ease = Easing.bezier(0.16, 1, 0.3, 1);
+export const SERIF = "'Instrument Serif', Georgia, serif";
+export const SANS = "Bricolage, 'Helvetica Neue', sans-serif";
+export const MONO = "'JetBrains Mono', ui-monospace, monospace";
+export const ease = Easing.bezier(0.16, 1, 0.3, 1);
 
 export const FPS = 30;
-export const DURATION = 60 * FPS;
+export const TRAILER_DURATION = 60 * FPS;
 
-const Fonts = () => (
+export const Fonts = () => (
   <style>{`
     @font-face { font-family: 'Instrument Serif'; font-style: normal; src: url(${staticFile("fonts/instrument-serif-latin-400.woff2")}) format('woff2'); }
     @font-face { font-family: 'Instrument Serif'; font-style: italic; src: url(${staticFile("fonts/instrument-serif-latin-400-italic.woff2")}) format('woff2'); }
@@ -24,20 +24,20 @@ const Fonts = () => (
 );
 
 /** Rise and fade in at `at` (frames, relative to the scene), over `len` frames. */
-const useIn = (at: number, len = 22) => {
+export const useIn = (at: number, len = 22) => {
   const f = useCurrentFrame();
   const p = interpolate(f, [at, at + len], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease });
   return { opacity: p, transform: `translateY(${(1 - p) * 34}px)` };
 };
 
 /** Fade a whole scene out over its last frames so cuts are soft. */
-const SceneFade: React.FC<{ len: number; children: React.ReactNode }> = ({ len, children }) => {
+export const SceneFade: React.FC<{ len: number; children: React.ReactNode }> = ({ len, children }) => {
   const f = useCurrentFrame();
   const o = interpolate(f, [len - 10, len], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return <AbsoluteFill style={{ opacity: o }}>{children}</AbsoluteFill>;
 };
 
-const Grain: React.FC<{ dark?: boolean }> = ({ dark }) => (
+export const Grain: React.FC<{ dark?: boolean }> = ({ dark }) => (
   <AbsoluteFill
     style={{
       opacity: dark ? 0.06 : 0.07,
@@ -48,7 +48,7 @@ const Grain: React.FC<{ dark?: boolean }> = ({ dark }) => (
   />
 );
 
-const Flame: React.FC<{ size: number; fg: string; bg: string }> = ({ size, fg, bg }) => (
+export const Flame: React.FC<{ size: number; fg: string; bg: string }> = ({ size, fg, bg }) => (
   <div style={{ width: size, height: size, borderRadius: "50%", background: bg, display: "grid", placeItems: "center" }}>
     <svg width={size * 0.54} height={size * 0.54} viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 3c1 3.5 5.5 5.5 5.5 10.2A5.5 5.5 0 0 1 12 19a5.5 5.5 0 0 1-5.5-5.8C6.5 10.5 8.5 9 9 6.5c1.2.9 2 2 2.2 3.3C11.9 7.8 12 5.5 12 3z" />
@@ -57,7 +57,7 @@ const Flame: React.FC<{ size: number; fg: string; bg: string }> = ({ size, fg, b
   </div>
 );
 
-const Eyebrow: React.FC<{ children: React.ReactNode; color: string; style?: React.CSSProperties }> = ({ children, color, style }) => (
+export const Eyebrow: React.FC<{ children: React.ReactNode; color: string; style?: React.CSSProperties }> = ({ children, color, style }) => (
   <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 26, letterSpacing: "0.18em", textTransform: "uppercase", color, ...style }}>{children}</div>
 );
 
@@ -300,7 +300,7 @@ const Stat: React.FC<{ n: string; l: string; hex: string; delay: number }> = ({ 
   );
 };
 
-export const FireDrillDemo: React.FC = () => {
+export const FireDrillTrailer: React.FC = () => {
   const { fps } = useVideoConfig();
   const sec = (s: number) => Math.round(s * fps);
   return (

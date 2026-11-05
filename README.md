@@ -84,6 +84,8 @@ cd dashboard && npm ci && npm run dev                           # dashboard on :
 
 A real Switch 0.31.0 stack, a bridged room, the gate over its agent WebSocket, real pytest verdicts and a guarded merge, for all three incidents. The commands were posted by one Mattermost user (scripted authorship, labelled). Read [docs/evidence/live-switch-run.md](docs/evidence/live-switch-run.md); the gate's own recordings are `docs/evidence/live-switch-*.jsonl`, and [docs/demo-dashboard.mp4](docs/demo-dashboard.mp4) is a 62-second screen recording of the dashboard stepping through one of them from its console (silent; narrate it for your own cut). [docs/demo-trailer.mp4](docs/demo-trailer.mp4) is a 60-second silent trailer rendered with Remotion (`video/demo`), whose live-run scene is drawn from the real recording.
 
+To run the drill with the real Claude Code and Codex agents, follow [docs/real-agents.md](docs/real-agents.md).
+
 ## Judge Replay Mode (no Docker, no API keys, no backend)
 
 ```bash
