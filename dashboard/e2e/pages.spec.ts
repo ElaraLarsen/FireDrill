@@ -65,6 +65,23 @@ test.describe("colour contrast (WCAG AA, console closed)", () => {
   }
 });
 
+test("landing: the footer wordmark finishes drawing and is not clipped", async ({ page }) => {
+  await page.goto("/#/");
+  await page.waitForTimeout(1500);
+  for (let i = 0; i < 40; i++) { await page.mouse.wheel(0, 900); await page.waitForTimeout(100); }
+  await page.waitForTimeout(3000);
+  const r = await page.evaluate(() => {
+    const el = document.querySelector('[data-gsap="chars"]')!;
+    const chars = [...el.querySelectorAll("div,span")].filter((c) => c.children.length === 0 && c.textContent?.trim());
+    const moved = chars.filter((c) => { const m = new DOMMatrix(getComputedStyle(c).transform); return Math.abs(m.f) > 1 || Math.abs(m.b) > 0.01; }).length;
+    const box = el.getBoundingClientRect();
+    return { chars: chars.length, moved, inView: box.top >= 0 && box.bottom <= innerHeight + 1, atBottom: Math.round(scrollY + innerHeight) >= document.documentElement.scrollHeight - 2 };
+  });
+  expect(r.chars).toBe(9);
+  expect(r.atBottom).toBe(true);
+  expect(r.moved, "letters still mid-animation").toBe(0);
+});
+
 test("reduced motion: the console still opens and works", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await openCase(page);

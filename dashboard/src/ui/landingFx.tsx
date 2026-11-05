@@ -58,9 +58,10 @@ export function useLandingFx(root: RefObject<HTMLElement | null>) {
         SplitText.create(w, {
           type: "chars", autoSplit: true,
           onSplit: (self) => gsap.from(self.chars, {
-            yPercent: 115, rotate: () => gsap.utils.random(-14, 14), ease: "back.out(1.6)", stagger: 0.05,
-            // The wordmark sits at the foot of the page, so it finishes exactly where the scroll does.
-            scrollTrigger: { trigger: w, start: "top bottom", end: "max", scrub: 0.8 },
+            yPercent: 115, rotate: () => gsap.utils.random(-14, 14), ease: "back.out(1.6)", duration: 1.1, stagger: 0.07,
+            // Plays once when the wordmark comes into view. It was scrubbed to the end of the scroll, but that
+            // end moves while sections above settle, which left the last letters hidden at the foot of the page.
+            scrollTrigger: { trigger: w, start: "top 96%", once: true },
           }),
         });
       }
